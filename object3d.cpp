@@ -64,110 +64,91 @@ Pose Object3D::loadPose(std::string inputfile){
     return Pose(reader.GetAttrib(), reader.GetShapes(), reader.GetMaterials());
 }
 
-void Object3D::load(const char* inputdir, GLuint texture, const char* config, int animated){
-    if(animated){
-        int count = 0;
-        char* filenames[100];
-        struct dirent *entry;
-        DIR *dir = opendir(inputdir);
-        while ((entry = readdir(dir)) != NULL) {
-            if(!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, ".."))
-                continue;
+void Object3D::load(const char* inputdir, GLuint texture, const char* config){
+    int count = 0;
+    char* filenames[100];
+    struct dirent *entry;
+    DIR *dir = opendir(inputdir);
+    while ((entry = readdir(dir)) != NULL) {
+        if(!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, ".."))
+            continue;
 
-            char* s = concat(inputdir, entry->d_name);
-            filenames[count++] = s;
-        }
-        closedir(dir);
+        char* s = concat(inputdir, entry->d_name);
+        filenames[count++] = s;
+    }
+    closedir(dir);
 
-        qsort(filenames, count, sizeof(*filenames), compare);
+    qsort(filenames, count, sizeof(*filenames), compare);
 
-        for(int i = 0; i < count; i++){
-            printf("reading %s\n", filenames[i]);
-            poses.push_back(loadPose(filenames[i]));
-            free(filenames[i]);
-        }
-
-        char * line = NULL;
-        size_t len = 0;
-        ssize_t read;
-        count = 0;
-
-        FILE* fp = fopen(config, "r");
-        if (fp == NULL)
-            exit(EXIT_FAILURE);
-
-        while ((read = getline(&line, &len, fp)) != -1) {
-            if(line[0] == '#'){
-                continue;
-            }
-            else{
-                switch(count){
-                    case 0:
-                        sscanf(line, "%d,%d\n", &rightPunchFirst, &rightPunchLast);
-                        count++;
-                        break;
-                    case 1:
-                        sscanf(line, "%d,%d\n", &leftPunchFirst, &leftPunchLast);
-                        count++;
-                        break;
-                    case 2:
-                        sscanf(line, "%d,%d\n", &walkFirst, &walkLast);
-                        count++;
-                        break;
-                    case 3:
-                        sscanf(line, "%d,%d\n", &topOfHeadVertex, &bottomOfHeadVertex);
-                        count++;
-                        break;
-                    case 4:
-                        sscanf(line, "%d", &betweenEyesVertex);
-                        count++;
-                        break;
-                    case 5:
-                        sscanf(line, "%d", &centerVertex);
-                        count++;
-                        break;
-                    case 6:
-                        sscanf(line, "%d,%d,%d\n", &pulseVertex, &elbowVertex, &pulseRightVertex);
-                        count++;
-                        break;
-                    case 7:
-                        sscanf(line, "%d,%d,%d\n", &rightHandVertex, &leftHandVertex);
-                        count++;
-                        break;
-                }
-            }
-        }
-
-        fclose(fp);
-        if (line){
-            free(line);
-        }
-
-        this->texture = texture;
-        this->currentPose = walkFirst;
-        this->punchFrames = this->rightPunchLast - this->rightPunchFirst;
-        debug = 0;
-        pos = Point(0, 0, 0);
-        target = Point(0, 0, 1);
-        theta = 0;
-        }
-
-    else{
-        struct dirent *entry;
-        DIR *dir = opendir(inputdir);
-        while ((entry = readdir(dir)) != NULL) {
-            if(!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, ".."))
-                continue;
-
-            char* s = concat(inputdir, entry->d_name);
-            poses.push_back(loadPose(s));
-        }
-        closedir(dir);
-        this->texture = texture;
-        this->currentPose = 0;
-        pos = Point(0, 0, 20);
+    for(int i = 0; i < count; i++){
+        printf("reading %s\n", filenames[i]);
+        poses.push_back(loadPose(filenames[i]));
+        free(filenames[i]);
     }
 
+    char * line = NULL;
+    size_t len = 0;
+    ssize_t read;
+    count = 0;
+
+    FILE* fp = fopen(config, "r");
+    if (fp == NULL)
+        exit(EXIT_FAILURE);
+
+    while ((read = getline(&line, &len, fp)) != -1) {
+        if(line[0] == '#'){
+            continue;
+        }
+        else{
+            switch(count){
+                case 0:
+                    sscanf(line, "%d,%d\n", &rightPunchFirst, &rightPunchLast);
+                    count++;
+                    break;
+                case 1:
+                    sscanf(line, "%d,%d\n", &leftPunchFirst, &leftPunchLast);
+                    count++;
+                    break;
+                case 2:
+                    sscanf(line, "%d,%d\n", &walkFirst, &walkLast);
+                    count++;
+                    break;
+                case 3:
+                    sscanf(line, "%d,%d\n", &topOfHeadVertex, &bottomOfHeadVertex);
+                    count++;
+                    break;
+                case 4:
+                    sscanf(line, "%d", &betweenEyesVertex);
+                    count++;
+                    break;
+                case 5:
+                    sscanf(line, "%d", &centerVertex);
+                    count++;
+                    break;
+                case 6:
+                    sscanf(line, "%d,%d,%d\n", &pulseVertex, &elbowVertex, &pulseRightVertex);
+                    count++;
+                    break;
+                case 7:
+                    sscanf(line, "%d,%d,%d\n", &rightHandVertex, &leftHandVertex);
+                    count++;
+                    break;
+            }
+        }
+    }
+
+    fclose(fp);
+    if (line){
+        free(line);
+    }
+
+    this->texture = texture;
+    this->currentPose = walkFirst;
+    this->punchFrames = this->rightPunchLast - this->rightPunchFirst;
+    debug = 0;
+    pos = Point(0, 0, 0);
+    target = Point(0, 0, 1);
+    theta = 0;
 }
 
 void Object3D::draw(){

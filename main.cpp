@@ -359,7 +359,7 @@ int main(int argc, char** argv) {
     glutMouseFunc(mouse);
     glutIdleFunc(idle);
     initGL();
-    player.load("./josh/", LoadTextureRAW("joshtexture.bmp"), "josh.config", 1);
+    player.load("./models/josh/animations/", LoadTextureRAW("./models/josh/joshtexture.bmp"), "./models/josh/josh.config");
     glutMainLoop();
     
     return 0;

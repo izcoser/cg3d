@@ -53,10 +53,8 @@ class Object3D{
 
         int punchFrames;
 
-        int animated; // 1 for objects with animations, 0 for static.
-
         Pose loadPose(std::string inputfile);
-        void load(const char* inputdir, GLuint texture, const char* config, int animated);
+        void load(const char* inputdir, GLuint texture, const char* config);
         void draw(void);
         void nextPose(void);
         void prevPose(void);
