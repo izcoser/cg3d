@@ -130,7 +130,7 @@ void Object3D::load(const char* inputdir, GLuint texture, const char* config){
                     count++;
                     break;
                 case 7:
-                    sscanf(line, "%d,%d,%d\n", &rightHandVertex, &leftHandVertex);
+                    sscanf(line, "%d,%d\n", &rightHandVertex, &leftHandVertex);
                     count++;
                     break;
             }
@@ -225,19 +225,33 @@ void Object3D::draw(){
         glPushMatrix();
         Point headCenter = this->getHeadCenter();
         glTranslatef(headCenter.x, headCenter.y, headCenter.z);
-        glutWireSphere(0.12, 20, 10);
+        glutWireSphere(HEAD_RADIUS, 20, 10);
         glPopMatrix();
 
         glPushMatrix();
         Point rightHand = this->getRightHand();
         glTranslatef(rightHand.x, rightHand.y, rightHand.z);
-        glutWireSphere(0.06, 20, 10);
+        glutWireSphere(HAND_RADIUS, 20, 10);
         glPopMatrix();
 
         glPushMatrix();
         Point leftHand = this->getLeftHand();
         glTranslatef(leftHand.x, leftHand.y, leftHand.z);
-        glutWireSphere(0.06, 20, 10);
+        glutWireSphere(HAND_RADIUS, 20, 10);
+        glPopMatrix();
+
+        glPushMatrix();
+        GLfloat mat_ambient_g[] = { 0.0, 1.0, 0.0, 1.0 };
+        glMaterialfv(GL_FRONT, GL_EMISSION, mat_ambient_g);
+        glColor3fv(mat_ambient_g);
+        glTranslatef(pos.x, pos.y, pos.z);
+        //glColor3f(R, G, B);
+        glBegin(GL_TRIANGLE_FAN);
+        glVertex3f(0, 0, 0);
+        for(int i = 20; i >= 0; i--){
+            glVertex3f (BODY_RADIUS * cos(i * 2 * M_PI / 20), 0, BODY_RADIUS * sin(i * 2 * M_PI / 20));
+        }
+        glEnd();
         glPopMatrix();
     }
 }
@@ -382,4 +396,26 @@ Point Object3D::getRightHand(void){
     p = p.rotatePoint(theta);
     p += pos;
     return p;
+}
+
+void Object3D::move(GLfloat delta, Object3D computer, GLdouble timeDiff){
+    Point newPos = pos + target * timeDiff * delta;
+    GLfloat distance = newPos.distance(computer.pos);
+    if(distance > 2 * BODY_RADIUS){
+        pos = newPos;
+    }
+}
+
+void Object3D::rotate(GLfloat delta, GLdouble timeDiff){
+    theta += 100 * timeDiff * delta;
+    target = Point(0, 0, 1).rotatePoint(theta);
+}
+
+int Object3D::hit(Object3D target){
+    static GLdouble distance = HAND_RADIUS + HEAD_RADIUS;
+    Point headCenter = target.getHeadCenter();
+    Point leftHand = this->getLeftHand();
+    Point rightHand = this->getRightHand();
+
+    return leftHand.distance(headCenter) < distance || rightHand.distance(headCenter) < distance;
 }

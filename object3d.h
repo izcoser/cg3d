@@ -6,6 +6,10 @@
 #include "tiny_obj_loader.h"
 #include "point.h"
 
+#define BODY_RADIUS 0.4
+#define HAND_RADIUS 0.06
+#define HEAD_RADIUS 0.12
+
 class Pose{
     public:
         tinyobj::attrib_t attrib;
@@ -76,6 +80,9 @@ class Object3D{
         Point getHeadCenter(void);
         Point getLeftHand(void);
         Point getRightHand(void);
+        void move(GLfloat delta, Object3D computer, GLdouble timeDiff);
+        void rotate(GLfloat delta, GLdouble timeDiff);
+        int hit(Object3D target);
 };
 
 #endif

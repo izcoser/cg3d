@@ -19,6 +19,7 @@ GLfloat xMouse = 0;
 GLfloat yMouse = 0;
 
 Object3D player;
+Object3D computer;
 GLuint texture; 
 
 int click_x;
@@ -28,6 +29,7 @@ GLfloat zoom = 3;
 GLfloat horizontalAngle = 180;
 GLfloat verticalAngle = 45;
 
+int leftMouseButtonDown = 0;
 int rightMouseButtonDown = 0;
 
 void DrawAxes(double size)
@@ -194,6 +196,7 @@ void display() {
     DrawAxes(1.5);
 
     player.draw();
+    computer.draw();
 
     glutSwapBuffers();
 }
@@ -265,9 +268,11 @@ void mouse(int button, int state, int x, int y){
     
     if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN){
         click_x = x;
+        leftMouseButtonDown = 1;
     }
     else if(button == GLUT_LEFT_BUTTON && state == GLUT_UP){
         player.setPose(player.walkFirst);
+        leftMouseButtonDown = 0;
     }
     else if(button == GLUT_RIGHT_BUTTON){
         if(state == 0){
@@ -321,23 +326,25 @@ void idle(void){
     timeDiff = current_time - previous_time;
     previous_time = current_time;
 
-    GLfloat inc = INC_KEYIDLE;
+    GLfloat inc = INC_KEYIDLE / 5;
 
     if(keyStatus[(int)('w')]){
-        player.pos += player.target * timeDiff * (inc / 5);
+        player.move(inc, computer, timeDiff);
         player.nextWalkingPose();
     }
     if(keyStatus[(int)('s')]){
-        player.pos -= player.target * timeDiff * (inc / 5);
+        player.move(-inc, computer, timeDiff);
         player.prevWalkingPose();
     }
     if(keyStatus[(int)('a')]){
-        player.theta += 20 * timeDiff * inc;
-        player.target = Point(0, 0, 1).rotatePoint(player.theta);
+        player.rotate(inc, timeDiff);
     }
     if(keyStatus[(int)('d')]){
-        player.theta -= 20 * timeDiff * inc;
-        player.target = Point(0, 0, 1).rotatePoint(player.theta);
+        player.rotate(-inc, timeDiff);
+    }
+
+    if(leftMouseButtonDown && player.hit(computer)){ // curto circuito pra não ficar calculando
+        printf("Hit!\n");                            //  hit o tempo inteiro
     }
 
     glutPostRedisplay();
@@ -359,7 +366,10 @@ int main(int argc, char** argv) {
     glutMouseFunc(mouse);
     glutIdleFunc(idle);
     initGL();
-    player.load("./models/josh/animations/", LoadTextureRAW("./models/josh/joshtexture.bmp"), "./models/josh/josh.config");
+    player.load("./models/michelle/animations/", LoadTextureRAW("./models/michelle/michelle.bmp"), "./models/michelle/michelle.config");
+    computer = player;
+    computer.pos = Point(0, 0, -5);
+    computer.toggleDebug();
     glutMainLoop();
     
     return 0;
