@@ -34,6 +34,19 @@ int rightMouseButtonDown = 0;
 
 Point arenaDimensions(10, 3, 10);
 
+void CalculateFrameRate(){
+    static float framesPerSecond = 0.0f;
+    static float lastTime = 0.0f;
+    float currentTime = glutGet(GLUT_ELAPSED_TIME);    
+    framesPerSecond++;
+    if( currentTime - lastTime > 1000.0f )
+    {
+        lastTime = currentTime;
+        printf("FPS: %d\n", (int)framesPerSecond);
+        framesPerSecond = 0;
+    }
+}
+
 
 void drawArena(double width, double height, double length){
     GLfloat mat_ambient_r[] = { 1.0, 0.0, 0.0, 1.0 };
@@ -153,8 +166,8 @@ void initGL() {
     glEnable(GL_DEPTH_TEST);   // Enable depth testing for z-culling
     glDepthFunc(GL_LEQUAL);    // Set the type of depth-test
     //glEnable(GL_CULL_FACE); //?
-    glShadeModel(GL_SMOOTH);   // Enable smooth shading
-    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);  // Nice perspective corrections
+    //glShadeModel(GL_SMOOTH);   // Enable smooth shading
+    //glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);  // Nice perspective corrections
 
     // Create light components.
     GLfloat ambientLight[] = { 0.2f, 0.2f, 0.2f, 1.0f };
@@ -176,7 +189,7 @@ void initGL() {
 
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
-    glEnable(GL_LIGHT1);
+    //glEnable(GL_LIGHT1);
 }
 
 void drawObj(double size){   
@@ -217,6 +230,7 @@ void drawFloor(){
 }
 
 void display() {
+    CalculateFrameRate();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear color and depth buffers
     glMatrixMode(GL_MODELVIEW);     // To operate on model-view matrix
     
@@ -256,9 +270,9 @@ void display() {
         gluLookAt(p.x, p.y, p.z, target.x, target.y, target.z, 0, 1, 0);
     }
     
-    drawFloor();
+    /*drawFloor();
     DrawAxes(1.5);
-
+*/
     player.draw();
     computer.draw();
 
