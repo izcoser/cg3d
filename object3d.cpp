@@ -398,10 +398,16 @@ Point Object3D::getRightHand(void){
     return p;
 }
 
-void Object3D::move(GLfloat delta, Object3D computer, GLdouble timeDiff){
+static int insideArena(Point p, Point arenaDimensions){
+    GLfloat radius = BODY_RADIUS;
+    return p.x - radius > 0 && p.x + radius < arenaDimensions.x \
+    && p.z - radius > 0 && p.z + radius < arenaDimensions.z; 
+}
+
+void Object3D::move(GLfloat delta, Object3D computer, GLdouble timeDiff, Point arenaDimensions){
     Point newPos = pos + target * timeDiff * delta;
     GLfloat distance = newPos.distance(computer.pos);
-    if(distance > 2 * BODY_RADIUS){
+    if(distance > 2 * BODY_RADIUS && insideArena(newPos, arenaDimensions)){
         pos = newPos;
     }
 }

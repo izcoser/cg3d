@@ -32,8 +32,72 @@ GLfloat verticalAngle = 45;
 int leftMouseButtonDown = 0;
 int rightMouseButtonDown = 0;
 
-void DrawAxes(double size)
-{
+Point arenaDimensions(10, 3, 10);
+
+
+void drawArena(double width, double height, double length){
+    GLfloat mat_ambient_r[] = { 1.0, 0.0, 0.0, 1.0 };
+    GLfloat mat_ambient_g[] = { 0.0, 1.0, 0.0, 1.0 };
+    GLfloat mat_ambient_b[] = { 0.0, 0.0, 1.0, 1.0 };
+    GLfloat mat_ambient_c[] = { 0.0, 0.5, 0.5, 1.0 }; // cyan
+    GLfloat mat_ambient_y[] = { 0.5, 0.5, 0.0, 1.0 }; // yellow
+    GLfloat mat_ambient_p[] = { 0.5, 0.0, 0.5, 1.0 }; // purple
+
+    glBegin(GL_QUADS);
+    
+    glMaterialfv(GL_FRONT, GL_EMISSION, mat_ambient_r);
+    glColor3fv(mat_ambient_r);
+    
+    glVertex3f(0, 0, 0);
+    glVertex3f(0, 0, length);
+    glVertex3f(0, height, length);
+    glVertex3f(0, height, 0);
+
+
+    glMaterialfv(GL_FRONT, GL_EMISSION, mat_ambient_g);
+    glColor3fv(mat_ambient_g);
+
+    glVertex3f(0, 0, length);
+    glVertex3f(width, 0, length);
+    glVertex3f(width, height, length);
+    glVertex3f(0, height, length);
+
+    glMaterialfv(GL_FRONT, GL_EMISSION, mat_ambient_b);
+    glColor3fv(mat_ambient_b);
+
+    glVertex3f(width, 0, 0);
+    glVertex3f(width, 0, length);
+    glVertex3f(width, height, length);
+    glVertex3f(width, height, 0);
+
+    glMaterialfv(GL_FRONT, GL_EMISSION, mat_ambient_c);
+    glColor3fv(mat_ambient_c);
+
+    glVertex3f(0, 0, 0);
+    glVertex3f(width, 0, 0);
+    glVertex3f(width, height, 0);
+    glVertex3f(0, height, 0);
+
+    glMaterialfv(GL_FRONT, GL_EMISSION, mat_ambient_y);
+    glColor3fv(mat_ambient_y);
+
+    glVertex3f(0, height, 0);
+    glVertex3f(width, height, 0);
+    glVertex3f(width, height, length);
+    glVertex3f(0, height, length);
+
+    glMaterialfv(GL_FRONT, GL_EMISSION, mat_ambient_p);
+    glColor3fv(mat_ambient_p);
+
+    glVertex3f(0, 0, 0);
+    glVertex3f(width, 0, 0);
+    glVertex3f(width, 0, length);
+    glVertex3f(0, 0, length);
+
+    glEnd();
+}
+
+void DrawAxes(double size){
     GLfloat mat_ambient_r[] = { 1.0, 0.0, 0.0, 1.0 };
     GLfloat mat_ambient_g[] = { 0.0, 1.0, 0.0, 1.0 };
     GLfloat mat_ambient_b[] = { 0.0, 0.0, 1.0, 1.0 };
@@ -88,7 +152,7 @@ void initGL() {
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_DEPTH_TEST);   // Enable depth testing for z-culling
     glDepthFunc(GL_LEQUAL);    // Set the type of depth-test
-    glEnable(GL_CULL_FACE); //?
+    //glEnable(GL_CULL_FACE); //?
     glShadeModel(GL_SMOOTH);   // Enable smooth shading
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);  // Nice perspective corrections
 
@@ -197,6 +261,8 @@ void display() {
 
     player.draw();
     computer.draw();
+
+    drawArena(arenaDimensions.x, arenaDimensions.y, arenaDimensions.z);
 
     glutSwapBuffers();
 }
@@ -329,11 +395,11 @@ void idle(void){
     GLfloat inc = INC_KEYIDLE / 5;
 
     if(keyStatus[(int)('w')]){
-        player.move(inc, computer, timeDiff);
+        player.move(inc, computer, timeDiff, arenaDimensions);
         player.nextWalkingPose();
     }
     if(keyStatus[(int)('s')]){
-        player.move(-inc, computer, timeDiff);
+        player.move(-inc, computer, timeDiff, arenaDimensions);
         player.prevWalkingPose();
     }
     if(keyStatus[(int)('a')]){
@@ -367,8 +433,9 @@ int main(int argc, char** argv) {
     glutIdleFunc(idle);
     initGL();
     player.load("./models/michelle/animations/", LoadTextureRAW("./models/michelle/michelle.bmp"), "./models/michelle/michelle.config");
+    player.pos = Point(1, 0, 1);
     computer = player;
-    computer.pos = Point(0, 0, -5);
+    computer.pos = Point(8, 0, 8);
     computer.toggleDebug();
     glutMainLoop();
     

@@ -80,7 +80,7 @@ class Object3D{
         Point getHeadCenter(void);
         Point getLeftHand(void);
         Point getRightHand(void);
-        void move(GLfloat delta, Object3D computer, GLdouble timeDiff);
+        void move(GLfloat delta, Object3D computer, GLdouble timeDiff, Point arenaDimensions);
         void rotate(GLfloat delta, GLdouble timeDiff);
         int hit(Object3D target);
 };
