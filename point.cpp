@@ -66,6 +66,10 @@ Point Point::rotatePoint(GLfloat theta){
     return Point(xx * cos(theta) + zz * sin(theta), y, -xx * sin(theta) + zz * cos(theta));
 }
 
+Point Point::scale(Point s){
+    return Point(x * s.x, y * s.y, z * s.z);
+}
+
 /*
 //Funcao auxiliar para fazer o produto vetorial entre dois vetores a x b = out
 void cross(float a[3], float b[3], float out[3])

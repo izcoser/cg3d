@@ -133,6 +133,10 @@ void Object3D::load(const char* inputdir, GLuint texture, const char* config){
                     sscanf(line, "%d,%d\n", &rightHandVertex, &leftHandVertex);
                     count++;
                     break;
+                case 8:
+                    sscanf(line, "%f\n", &yscale);
+                    count++;
+                    break;
             }
         }
     }
@@ -153,9 +157,11 @@ void Object3D::load(const char* inputdir, GLuint texture, const char* config){
 
 void Object3D::draw(){
     glPushMatrix();
+
+    glScalef(1, yscale, 1);
     glTranslatef(pos.x, pos.y, pos.z);
     glRotatef(theta, 0, 1, 0);
-
+    
     GLfloat materialEmission[] = { 0.10, 0.10, 0.10, 1};
     GLfloat materialColorA[] = { 0.1, 0.1, 0.1, 0.1};
     GLfloat materialColorD[] = { .90, .90, .90, 1};
@@ -315,6 +321,7 @@ Point Object3D::getEyePos(void){
     p += getVertexPos(betweenEyesVertex); // reverse transformations
     p = p.rotatePoint(theta);
     p += pos;
+    p = p.scale(Point(1, yscale, 1));
     return p;
 }
 
@@ -323,6 +330,7 @@ Point Object3D::getPulsePos(void){
     p += getVertexPos(pulseVertex);
     p = p.rotatePoint(theta);
     p += pos;
+    p = p.scale(Point(1, yscale, 1));
     return p;
 }
 
@@ -331,6 +339,7 @@ Point Object3D::getPulseRightPos(void){
     p += getVertexPos(pulseRightVertex);
     p = p.rotatePoint(theta);
     p += pos;
+    p = p.scale(Point(1, yscale, 1));
     return p;
 }
 
@@ -339,6 +348,7 @@ Point Object3D::getElbowPos(void){
     p += getVertexPos(elbowVertex);
     p = p.rotatePoint(theta);
     p += pos;
+    p = p.scale(Point(1, yscale, 1));
     return p;
 }
 
@@ -351,6 +361,7 @@ Point Object3D::getCenterPos(void){
     p += getVertexPos(centerVertex);
     p = p.rotatePoint(theta);
     p += pos;
+    p = p.scale(Point(1, yscale, 1));
     return p;    
 }
 
@@ -367,6 +378,7 @@ Point Object3D::getHeadTopPos(void){
     p += getVertexPos(topOfHeadVertex);
     p = p.rotatePoint(theta);
     p += pos;
+    p = p.scale(Point(1, yscale, 1));
     return p;
 }
 
@@ -375,6 +387,7 @@ Point Object3D::getHeadBottomPos(void){
     p += getVertexPos(bottomOfHeadVertex);
     p = p.rotatePoint(theta);
     p += pos;
+    p = p.scale(Point(1, yscale, 1));
     return p;
 }
 
@@ -387,6 +400,7 @@ Point Object3D::getLeftHand(void){
     p += getVertexPos(leftHandVertex);
     p = p.rotatePoint(theta);
     p += pos;
+    p = p.scale(Point(1, yscale, 1));
     return p;
 }
 
@@ -395,6 +409,7 @@ Point Object3D::getRightHand(void){
     p += getVertexPos(rightHandVertex);
     p = p.rotatePoint(theta);
     p += pos;
+    p = p.scale(Point(1, yscale, 1));
     return p;
 }
 

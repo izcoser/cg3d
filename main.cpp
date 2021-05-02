@@ -34,6 +34,8 @@ int rightMouseButtonDown = 0;
 
 Point arenaDimensions(10, 3, 10);
 
+int lightToggle = 1;
+
 void CalculateFrameRate(){
     static float framesPerSecond = 0.0f;
     static float lastTime = 0.0f;
@@ -61,50 +63,74 @@ void drawArena(double width, double height, double length){
     glMaterialfv(GL_FRONT, GL_EMISSION, mat_ambient_r);
     glColor3fv(mat_ambient_r);
     
+    glNormal3f(1, 0, 0);
     glVertex3f(0, 0, 0);
+    glNormal3f(1, 0, 0);
     glVertex3f(0, 0, length);
+    glNormal3f(1, 0, 0);
     glVertex3f(0, height, length);
+    glNormal3f(1, 0, 0);
     glVertex3f(0, height, 0);
 
 
     glMaterialfv(GL_FRONT, GL_EMISSION, mat_ambient_g);
     glColor3fv(mat_ambient_g);
 
+    glNormal3f(0, 0, -1);
     glVertex3f(0, 0, length);
+    glNormal3f(0, 0, -1);
     glVertex3f(width, 0, length);
+    glNormal3f(0, 0, -1);
     glVertex3f(width, height, length);
+    glNormal3f(0, 0, -1);
     glVertex3f(0, height, length);
 
     glMaterialfv(GL_FRONT, GL_EMISSION, mat_ambient_b);
     glColor3fv(mat_ambient_b);
 
+    glNormal3f(-1, 0, 0);
     glVertex3f(width, 0, 0);
+    glNormal3f(-1, 0, 0);
     glVertex3f(width, 0, length);
+    glNormal3f(-1, 0, 0);
     glVertex3f(width, height, length);
+    glNormal3f(-1, 0, 0);
     glVertex3f(width, height, 0);
 
     glMaterialfv(GL_FRONT, GL_EMISSION, mat_ambient_c);
     glColor3fv(mat_ambient_c);
 
+    glNormal3f(0, 0, 1);
     glVertex3f(0, 0, 0);
+    glNormal3f(0, 0, 1);
     glVertex3f(width, 0, 0);
+    glNormal3f(0, 0, 1);
     glVertex3f(width, height, 0);
+    glNormal3f(0, 0, 1);
     glVertex3f(0, height, 0);
 
     glMaterialfv(GL_FRONT, GL_EMISSION, mat_ambient_y);
     glColor3fv(mat_ambient_y);
 
+    glNormal3f(0, -1, 0);
     glVertex3f(0, height, 0);
+    glNormal3f(0, -1, 0);
     glVertex3f(width, height, 0);
+    glNormal3f(0, -1, 0);
     glVertex3f(width, height, length);
+    glNormal3f(0, -1, 0);
     glVertex3f(0, height, length);
 
     glMaterialfv(GL_FRONT, GL_EMISSION, mat_ambient_p);
     glColor3fv(mat_ambient_p);
 
+    glNormal3f(0, 1, 0);
     glVertex3f(0, 0, 0);
+    glNormal3f(0, 1, 0);
     glVertex3f(width, 0, 0);
+    glNormal3f(0, 1, 0);
     glVertex3f(width, 0, length);
+    glNormal3f(0, 1, 0);
     glVertex3f(0, 0, length);
 
     glEnd();
@@ -170,26 +196,20 @@ void initGL() {
     //glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);  // Nice perspective corrections
 
     // Create light components.
-    GLfloat ambientLight[] = { 0.2f, 0.2f, 0.2f, 1.0f };
-    GLfloat diffuseLight[] = { 0.8f, 0.8f, 0.8, 1.0f };
-    GLfloat specularLight[] = { 0.5f, 0.5f, 0.5f, 1.0f };
-    GLfloat position[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-    GLfloat position1[] = { 0.0f, 0.0f, -10.0f, 1.0f };
+    //GLfloat ambientLight[] = { 0.2f, 0.2f, 0.2f, 1.0f };
+    //GLfloat diffuseLight[] = { 0.8f, 0.8f, 0.8, 1.0f };
+    //GLfloat specularLight[] = { 0.5f, 0.5f, 0.5f, 1.0f };
+    //GLfloat position[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    //GLfloat position1[] = { 0.0f, 0.0f, -10.0f, 1.0f };
 
     // Assign created components to GL_LIGHT0.
-    glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
-    glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
-    glLightfv(GL_LIGHT0, GL_POSITION, position);
-
-    glLightfv(GL_LIGHT1, GL_AMBIENT, ambientLight);
-    glLightfv(GL_LIGHT1, GL_DIFFUSE, diffuseLight);
-    glLightfv(GL_LIGHT1, GL_SPECULAR, specularLight);
-    glLightfv(GL_LIGHT1, GL_POSITION, position1);
+    //glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
+    //glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
+    //glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
+    //glLightfv(GL_LIGHT0, GL_POSITION, position);
 
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
-    //glEnable(GL_LIGHT1);
 }
 
 void drawObj(double size){   
@@ -237,6 +257,31 @@ void display() {
     // Render a color-cube consisting of 6 quads with different colors
     glLoadIdentity();                 // Reset the model-view matrix
 
+    
+    if(lightToggle){
+        GLfloat light_position[] = { arenaDimensions.x / 2, arenaDimensions.y, arenaDimensions.z / 2, 1.0 };
+        glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+    }
+    
+    else{
+        Point spot1 = player.pos;
+        spot1.y = arenaDimensions.y;
+
+        Point spot2 = computer.pos;
+        spot2.y = arenaDimensions.y;
+
+        GLfloat spot1_pos[] = {spot1.x, spot1.y, spot1.z};
+        GLfloat spot1_dir[] = {0, -1, 0};
+        glLightfv(GL_LIGHT1, GL_POSITION, spot1_pos);
+        glLightf(GL_LIGHT1, GL_SPOT_CUTOFF, 5.0);
+        glLightfv(GL_LIGHT1, GL_SPOT_DIRECTION, spot1_dir);
+
+        GLfloat spot2_pos[] = {spot2.x, spot2.y, spot2.z};
+        GLfloat spot2_dir[] = {0, -1, 0};
+        glLightfv(GL_LIGHT2, GL_POSITION, spot2_pos);
+        glLightf(GL_LIGHT2, GL_SPOT_CUTOFF, 5.0);
+        glLightfv(GL_LIGHT2, GL_SPOT_DIRECTION, spot2_dir);
+    }
     
     if(camSwitch == 1){
         Point p = player.getEyePos();
@@ -326,6 +371,21 @@ void keyboard(unsigned char key, int x, int y){
         case 'z':
         case 'Z':
             player.toggleDebug();
+            break;
+        case 'n':
+        case 'N':
+            lightToggle = !lightToggle;
+            if(lightToggle){
+                glEnable(GL_LIGHT0);
+                glDisable(GL_LIGHT1);
+                glDisable(GL_LIGHT2);
+            }
+            else{
+                glDisable(GL_LIGHT0);
+                glEnable(GL_LIGHT1);
+                glEnable(GL_LIGHT2);
+            }
+
             break;
         
         case '+':
@@ -446,9 +506,11 @@ int main(int argc, char** argv) {
     glutMouseFunc(mouse);
     glutIdleFunc(idle);
     initGL();
-    player.load("./models/michelle/animations/", LoadTextureRAW("./models/michelle/michelle.bmp"), "./models/michelle/michelle.config");
+    player.load("./models/amy/animations/", LoadTextureRAW("./models/amy/amy.bmp"), "./models/amy/amy.config");
     player.pos = Point(1, 0, 1);
-    computer = player;
+
+
+    computer.load("./models/michelle/animations/", LoadTextureRAW("./models/michelle/michelle.bmp"), "./models/michelle/michelle.config");
     computer.pos = Point(8, 0, 8);
     computer.toggleDebug();
     glutMainLoop();

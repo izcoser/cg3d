@@ -57,6 +57,8 @@ class Object3D{
 
         int punchFrames;
 
+        GLfloat yscale;
+
         Pose loadPose(std::string inputfile);
         void load(const char* inputdir, GLuint texture, const char* config);
         void draw(void);
