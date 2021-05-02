@@ -64,32 +64,48 @@ Pose Object3D::loadPose(std::string inputfile){
     return Pose(reader.GetAttrib(), reader.GetShapes(), reader.GetMaterials());
 }
 
-void Object3D::load(const char* inputdir, GLuint texture, const char* config){
-    int count = 0;
-    char* filenames[100];
-    struct dirent *entry;
-    DIR *dir = opendir(inputdir);
-    while ((entry = readdir(dir)) != NULL) {
-        if(!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, ".."))
-            continue;
+Point getVertexPos(int num, tinyobj::attrib_t attrib){
+    tinyobj::real_t vx = attrib.vertices[3*num+0];
+    tinyobj::real_t vy = attrib.vertices[3*num+1];
+    tinyobj::real_t vz = attrib.vertices[3*num+2];
+    return Point(vx, vy, vz);
+}
 
-        char* s = concat(inputdir, entry->d_name);
-        filenames[count++] = s;
+std::vector<Point> Object3D::extractInterestPoints(std::string inputfile){ // obtém pontos de interesse de uma pose.
+    tinyobj::ObjReaderConfig reader_config;
+    reader_config.mtl_search_path = "./"; // Path to material files
+    tinyobj::ObjReader reader;
+
+    if (!reader.ParseFromFile(inputfile, reader_config)) {
+        if (!reader.Error().empty()) {
+            std::cerr << "TinyObjReader: " << reader.Error();
     }
-    closedir(dir);
-
-    qsort(filenames, count, sizeof(*filenames), compare);
-
-    for(int i = 0; i < count; i++){
-        printf("reading %s\n", filenames[i]);
-        poses.push_back(loadPose(filenames[i]));
-        free(filenames[i]);
+        exit(1);  
     }
 
-    char * line = NULL;
+    if (!reader.Warning().empty()) {
+        std::cout << "TinyObjReader: " << reader.Warning();
+    }
+
+    std::vector<Point> points;
+    tinyobj::attrib_t attrib = reader.GetAttrib();
+    points.push_back(getVertexPos(topOfHeadVertex, attrib));
+    points.push_back(getVertexPos(bottomOfHeadVertex, attrib));
+    points.push_back(getVertexPos(betweenEyesVertex, attrib));
+    points.push_back(getVertexPos(pulseVertex, attrib));
+    points.push_back(getVertexPos(elbowVertex, attrib));
+    points.push_back(getVertexPos(pulseRightVertex, attrib));
+    points.push_back(getVertexPos(rightHandVertex, attrib));
+    points.push_back(getVertexPos(leftHandVertex, attrib));
+    
+    return points;
+}
+
+void Object3D::load(const char* inputdir, const char* decimatedinputdir, GLuint texture, const char* config){
+    char * line = NULL; // leitura do arquivo de config.
     size_t len = 0;
     ssize_t read;
-    count = 0;
+    int count = 0;
 
     FILE* fp = fopen(config, "r");
     if (fp == NULL)
@@ -122,18 +138,14 @@ void Object3D::load(const char* inputdir, GLuint texture, const char* config){
                     count++;
                     break;
                 case 5:
-                    sscanf(line, "%d", &centerVertex);
-                    count++;
-                    break;
-                case 6:
                     sscanf(line, "%d,%d,%d\n", &pulseVertex, &elbowVertex, &pulseRightVertex);
                     count++;
                     break;
-                case 7:
+                case 6:
                     sscanf(line, "%d,%d\n", &rightHandVertex, &leftHandVertex);
                     count++;
                     break;
-                case 8:
+                case 7:
                     sscanf(line, "%f\n", &yscale);
                     count++;
                     break;
@@ -144,6 +156,59 @@ void Object3D::load(const char* inputdir, GLuint texture, const char* config){
     fclose(fp);
     if (line){
         free(line);
+    }
+
+
+    count = 0; // leitura da animacao original
+    char* filenames[100];
+    struct dirent *entry;
+    DIR *dir = opendir(inputdir);
+    while ((entry = readdir(dir)) != NULL) {
+        if(!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, ".."))
+            continue;
+
+        char* s = concat(inputdir, entry->d_name);
+        filenames[count++] = s;
+    }
+    closedir(dir);
+
+    qsort(filenames, count, sizeof(*filenames), compare);
+
+    for(int i = 0; i < count; i++){
+        printf("extracting points %s\n", filenames[i]);
+        std::vector<Point> points = extractInterestPoints(filenames[i]);
+
+        topOfHead.push_back(points.at(0));
+        bottomOfHead.push_back(points.at(1));
+        betweenEyes.push_back(points.at(2));
+        pulse.push_back(points.at(3));
+        elbow.push_back(points.at(4));
+        pulseRight.push_back(points.at(5));
+        rightHand.push_back(points.at(6));
+        leftHand.push_back(points.at(7));
+        
+        free(filenames[i]);
+    }
+
+    count = 0; // leitura de arquivos minimizados
+    char* decfilenames[100];
+    DIR *dir2 = opendir(decimatedinputdir);
+
+    while ((entry = readdir(dir2)) != NULL) {
+        if(!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, ".."))
+            continue;
+
+        char* s = concat(decimatedinputdir, entry->d_name);
+        decfilenames[count++] = s;
+    }
+    closedir(dir2);
+
+    qsort(decfilenames, count, sizeof(*decfilenames), compare);
+
+    for(int i = 0; i < count; i++){
+        printf("reading %s\n", decfilenames[i]);
+        decimatedPoses.push_back(loadPose(decfilenames[i]));
+        free(decfilenames[i]);
     }
 
     this->texture = texture;
@@ -173,9 +238,9 @@ void Object3D::draw(){
     glMaterialfv(GL_FRONT, GL_AMBIENT, materialColorA);
     glMaterialfv(GL_FRONT, GL_DIFFUSE, materialColorD);
 
-    tinyobj::attrib_t attrib = poses.at(currentPose).attrib;
-    std::vector<tinyobj::shape_t> shapes = poses.at(currentPose).shapes;
-    std::vector<tinyobj::material_t> materials = poses.at(currentPose).materials;
+    tinyobj::attrib_t attrib = decimatedPoses.at(currentPose).attrib;
+    std::vector<tinyobj::shape_t> shapes = decimatedPoses.at(currentPose).shapes;
+    std::vector<tinyobj::material_t> materials = decimatedPoses.at(currentPose).materials;
     
     // Loop over shapes
     for (size_t s = 0; s < shapes.size(); s++) {
@@ -266,12 +331,12 @@ void Object3D::draw(){
 
 void Object3D::nextPose(void){
     currentPose += 1;
-    currentPose %= poses.size();
+    currentPose %= decimatedPoses.size();
 }
 
 void Object3D::prevPose(void){
     if(currentPose == 0){
-        currentPose = poses.size() - 1;
+        currentPose = decimatedPoses.size() - 1;
     }
     else{
         currentPose -= 1;
@@ -310,17 +375,10 @@ void Object3D::toggleDebug(void){
     debug = !debug;
 }
 
-Point Object3D::getVertexPos(int num){
-    tinyobj::attrib_t attrib = poses.at(currentPose).attrib;
-    tinyobj::real_t vx = attrib.vertices[3*num+0];
-    tinyobj::real_t vy = attrib.vertices[3*num+1];
-    tinyobj::real_t vz = attrib.vertices[3*num+2];
-    return Point(vx, vy, vz);
-}
 
 Point Object3D::getEyePos(void){
     Point p(0, 0, 0);
-    p += getVertexPos(betweenEyesVertex); // reverse transformations
+    p += betweenEyes.at(currentPose); // reverse transformations
     p = p.rotatePoint(theta);
     p += pos;
     p = p.scale(Point(1, yscale, 1));
@@ -329,7 +387,7 @@ Point Object3D::getEyePos(void){
 
 Point Object3D::getPulsePos(void){
     Point p(0, 0, 0);
-    p += getVertexPos(pulseVertex);
+    p += pulse.at(currentPose);;
     p = p.rotatePoint(theta);
     p += pos;
     p = p.scale(Point(1, yscale, 1));
@@ -338,7 +396,7 @@ Point Object3D::getPulsePos(void){
 
 Point Object3D::getPulseRightPos(void){
     Point p(0, 0, 0);
-    p += getVertexPos(pulseRightVertex);
+    p += pulseRight.at(currentPose);;
     p = p.rotatePoint(theta);
     p += pos;
     p = p.scale(Point(1, yscale, 1));
@@ -347,7 +405,7 @@ Point Object3D::getPulseRightPos(void){
 
 Point Object3D::getElbowPos(void){
     Point p(0, 0, 0);
-    p += getVertexPos(elbowVertex);
+    p += elbow.at(currentPose);;
     p = p.rotatePoint(theta);
     p += pos;
     p = p.scale(Point(1, yscale, 1));
@@ -356,15 +414,6 @@ Point Object3D::getElbowPos(void){
 
 Point Object3D::getPulseTarget(void){
     return (this->getPulsePos() - this->getElbowPos()).normalize();
-}
-
-Point Object3D::getCenterPos(void){
-    Point p(0, 0, 0);
-    p += getVertexPos(centerVertex);
-    p = p.rotatePoint(theta);
-    p += pos;
-    p = p.scale(Point(1, yscale, 1));
-    return p;    
 }
 
 Point Object3D::getPulseRightVector(void){
@@ -377,7 +426,7 @@ Point Object3D::getPulseUp(void){
 
 Point Object3D::getHeadTopPos(void){
     Point p(0, 0, 0);
-    p += getVertexPos(topOfHeadVertex);
+    p += topOfHead.at(currentPose);;
     p = p.rotatePoint(theta);
     p += pos;
     p = p.scale(Point(1, yscale, 1));
@@ -386,7 +435,7 @@ Point Object3D::getHeadTopPos(void){
 
 Point Object3D::getHeadBottomPos(void){
     Point p(0, 0, 0);
-    p += getVertexPos(bottomOfHeadVertex);
+    p += bottomOfHead.at(currentPose);;
     p = p.rotatePoint(theta);
     p += pos;
     p = p.scale(Point(1, yscale, 1));
@@ -399,7 +448,7 @@ Point Object3D::getHeadCenter(void){
 
 Point Object3D::getLeftHand(void){
     Point p(0, 0, 0);
-    p += getVertexPos(leftHandVertex);
+    p += leftHand.at(currentPose);;
     p = p.rotatePoint(theta);
     p += pos;
     p = p.scale(Point(1, yscale, 1));
@@ -408,7 +457,7 @@ Point Object3D::getLeftHand(void){
 
 Point Object3D::getRightHand(void){
     Point p(0, 0, 0);
-    p += getVertexPos(rightHandVertex);
+    p += rightHand.at(currentPose);;
     p = p.rotatePoint(theta);
     p += pos;
     p = p.scale(Point(1, yscale, 1));

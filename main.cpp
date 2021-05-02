@@ -564,11 +564,10 @@ int main(int argc, char** argv) {
     glutMouseFunc(mouse);
     glutIdleFunc(idle);
     initGL();
-    player.load("./models/amy/animations/", LoadTextureRAW("./models/amy/amy.bmp"), "./models/amy/amy.config");
+    player.load("./models/amy/animations/", "./models/amy/decimated/", LoadTextureRAW("./models/amy/amy.bmp"), "./models/amy/amy.config");
     player.pos = Point(1, 0, 1);
 
-
-    computer.load("./models/michelle/animations/", LoadTextureRAW("./models/michelle/michelle.bmp"), "./models/michelle/michelle.config");
+    computer.load("./models/michelle/animations/", "./models/michelle/decimated/", LoadTextureRAW("./models/michelle/michelle.bmp"), "./models/michelle/michelle.config");
     computer.pos = Point(8, 0, 8);
     computer.toggleDebug();
 

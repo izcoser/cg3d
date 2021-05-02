@@ -27,7 +27,27 @@ class Pose{
 
 class Object3D{
     public:
-        std::vector<Pose> poses;
+        /* Listas de pontos de interesse.
+        Para cada mesh da animação original, são escolhidos pontos como cabeça, meio dos olhos, mãos.
+        Esses pontos serão usados para fazer cálculos de colisão e posicionamento de câmeras. 
+        Essa informação vem do arquivo de configuração. */
+
+        std::vector<Point> topOfHead;
+        std::vector<Point> bottomOfHead;
+        std::vector<Point> betweenEyes;
+        std::vector<Point> pulse;
+        std::vector<Point> elbow;
+        std::vector<Point> pulseRight;
+        std::vector<Point> rightHand;
+        std::vector<Point> leftHand;
+
+        
+        /* Somente as poses decimated (10% do original) são armazenadas.
+        Os pontos dessas poses serão usados apenas para desenho, enquanto os pontos originais (acima) 
+        serão usados para cálculos. */
+        std::vector<Pose> decimatedPoses;
+        
+        
         GLuint texture;
         GLuint currentPose;
 
@@ -49,7 +69,6 @@ class Object3D{
         int topOfHeadVertex;
         int bottomOfHeadVertex;
         int betweenEyesVertex;
-        int centerVertex;
         int pulseVertex;
         int pulseRightVertex;
         int elbowVertex;
@@ -68,7 +87,8 @@ class Object3D{
         int aggressive;
 
         Pose loadPose(std::string inputfile);
-        void load(const char* inputdir, GLuint texture, const char* config);
+        std::vector<Point> extractInterestPoints(std::string inputfile);
+        void load(const char* inputdir, const char* decimatedinputdir, GLuint texture, const char* config);
         void draw(void);
         void nextPose(void);
         void prevPose(void);
@@ -76,7 +96,6 @@ class Object3D{
         void nextWalkingPose(void);
         void prevWalkingPose(void);
         void toggleDebug(void);
-        Point getVertexPos(int num);
         Point getEyePos(void);
         Point getPulsePos(void);
         Point getPulseRightPos(void);
