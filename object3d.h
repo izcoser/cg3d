@@ -7,8 +7,10 @@
 #include "point.h"
 
 #define BODY_RADIUS 0.4
-#define HAND_RADIUS 0.06
-#define HEAD_RADIUS 0.12
+#define HAND_RADIUS 0.08
+#define HEAD_RADIUS 0.16
+#define TIME_TO_PUNCH 500.0f
+#define minimo(a,b) ((a) < (b) ? (a) : (b))
 
 class Pose{
     public:
@@ -59,6 +61,12 @@ class Object3D{
 
         GLfloat yscale;
 
+        // Atributos abaixo usados apenas para o computador. 
+        int punchStatus; // 1: soco com mão direita
+                         // 2: soco com mão esquerda.
+
+        int aggressive;
+
         Pose loadPose(std::string inputfile);
         void load(const char* inputdir, GLuint texture, const char* config);
         void draw(void);
@@ -85,6 +93,9 @@ class Object3D{
         void move(GLfloat delta, Object3D computer, GLdouble timeDiff, Point arenaDimensions);
         void rotate(GLfloat delta, GLdouble timeDiff);
         int hit(Object3D target);
+        void lookAt(Object3D target);
+        void punch(GLdouble currentTime);
+        int inPunchingDistance(Object3D target);
 };
 
 #endif

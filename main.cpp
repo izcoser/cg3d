@@ -1,6 +1,7 @@
 #include <GL/glut.h>
 #include <math.h>
 #include <stdio.h>
+#include <time.h>
 #include "point.h"
 #include "object3d.h"
 #include "imageloader.h"
@@ -25,7 +26,7 @@ GLuint texture;
 int click_x;
 int camSwitch = 1;
 
-GLfloat zoom = 3;
+GLfloat zoom = 2.5;
 GLfloat horizontalAngle = 180;
 GLfloat verticalAngle = 45;
 
@@ -35,6 +36,12 @@ int rightMouseButtonDown = 0;
 Point arenaDimensions(10, 3, 10);
 
 int lightToggle = 1;
+
+int skyTexture;
+int floorTexture;
+int wallTexture;
+
+int enableComputer = 0;
 
 void CalculateFrameRate(){
     static float framesPerSecond = 0.0f;
@@ -51,87 +58,111 @@ void CalculateFrameRate(){
 
 
 void drawArena(double width, double height, double length){
-    GLfloat mat_ambient_r[] = { 1.0, 0.0, 0.0, 1.0 };
-    GLfloat mat_ambient_g[] = { 0.0, 1.0, 0.0, 1.0 };
-    GLfloat mat_ambient_b[] = { 0.0, 0.0, 1.0, 1.0 };
-    GLfloat mat_ambient_c[] = { 0.0, 0.5, 0.5, 1.0 }; // cyan
-    GLfloat mat_ambient_y[] = { 0.5, 0.5, 0.0, 1.0 }; // yellow
-    GLfloat mat_ambient_p[] = { 0.5, 0.0, 0.5, 1.0 }; // purple
+    GLfloat materialEmission[] = { 0.1, 0.1, 0.1, 1};
+    GLfloat materialColorA[] = { 0.1, 0.1, 0.1, 1};
+    GLfloat materialColorD[] = { 0.9, 0.9, 0.9, 1};
+    GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1};
+    GLfloat mat_shininess[] = { 100.0 };
+    glColor3f(1,1,1);
 
-    glBegin(GL_QUADS);
-    
-    glMaterialfv(GL_FRONT, GL_EMISSION, mat_ambient_r);
-    glColor3fv(mat_ambient_r);
-    
-    glNormal3f(1, 0, 0);
-    glVertex3f(0, 0, 0);
-    glNormal3f(1, 0, 0);
-    glVertex3f(0, 0, length);
-    glNormal3f(1, 0, 0);
-    glVertex3f(0, height, length);
-    glNormal3f(1, 0, 0);
-    glVertex3f(0, height, 0);
+    glMaterialfv(GL_FRONT, GL_EMISSION, materialEmission);
+    glMaterialfv(GL_FRONT, GL_AMBIENT, materialColorA);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, materialColorD);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
+
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT  );//X
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );//Y
+
+    glBindTexture (GL_TEXTURE_2D, skyTexture);
+    glBegin(GL_QUADS); // sky
+        glNormal3f(0, -1, 0);
+        glTexCoord2f (0, 0);
+        glVertex3f(0, height, 0);
+        glNormal3f(0, -1, 0);
+        glTexCoord2f (1, 0);
+        glVertex3f(width, height, 0);
+        glNormal3f(0, -1, 0);
+        glTexCoord2f (1, 1);
+        glVertex3f(width, height, length);
+        glNormal3f(0, -1, 0);
+        glTexCoord2f (0, 1);
+        glVertex3f(0, height, length);
+    glEnd();
+
+    glBindTexture (GL_TEXTURE_2D, floorTexture);
+    glBegin(GL_QUADS); //floor
+        glNormal3f(0, 1, 0);
+        glTexCoord2f (0, 0);
+        glVertex3f(0, 0, 0);
+        glNormal3f(0, 1, 0);
+        glTexCoord2f (1, 0);
+        glVertex3f(width, 0, 0);
+        glNormal3f(0, 1, 0);
+        glTexCoord2f (1, 1);
+        glVertex3f(width, 0, length);
+        glNormal3f(0, 1, 0);
+        glTexCoord2f (0, 1);
+        glVertex3f(0, 0, length);
+    glEnd();
+
+    glBindTexture (GL_TEXTURE_2D, wallTexture);
+    glBegin(GL_QUADS); //walls
+
+        glNormal3f(1, 0, 0);
+        glTexCoord2f (0, 0);
+        glVertex3f(0, 0, 0);
+        glNormal3f(1, 0, 0);
+        glTexCoord2f (1, 0);
+        glVertex3f(0, 0, length);
+        glNormal3f(1, 0, 0);
+        glTexCoord2f (1, 1);
+        glVertex3f(0, height, length);
+        glNormal3f(1, 0, 0);
+        glTexCoord2f (0, 1);
+        glVertex3f(0, height, 0);
 
 
-    glMaterialfv(GL_FRONT, GL_EMISSION, mat_ambient_g);
-    glColor3fv(mat_ambient_g);
+        glNormal3f(0, 0, -1);
+        glTexCoord2f (0, 0);
+        glVertex3f(0, 0, length);
+        glNormal3f(0, 0, -1);
+        glTexCoord2f (1, 0);
+        glVertex3f(width, 0, length);
+        glNormal3f(0, 0, -1);
+        glTexCoord2f (1, 1);
+        glVertex3f(width, height, length);
+        glNormal3f(0, 0, -1);
+        glTexCoord2f (0, 1);
+        glVertex3f(0, height, length);
 
-    glNormal3f(0, 0, -1);
-    glVertex3f(0, 0, length);
-    glNormal3f(0, 0, -1);
-    glVertex3f(width, 0, length);
-    glNormal3f(0, 0, -1);
-    glVertex3f(width, height, length);
-    glNormal3f(0, 0, -1);
-    glVertex3f(0, height, length);
+        glNormal3f(-1, 0, 0);
+        glTexCoord2f (0, 0);
+        glVertex3f(width, 0, 0);
+        glNormal3f(-1, 0, 0);
+        glTexCoord2f (1, 0);
+        glVertex3f(width, 0, length);
+        glNormal3f(-1, 0, 0);
+        glTexCoord2f (1, 1);
+        glVertex3f(width, height, length);
+        glNormal3f(-1, 0, 0);
+        glTexCoord2f (0, 1);
+        glVertex3f(width, height, 0);
 
-    glMaterialfv(GL_FRONT, GL_EMISSION, mat_ambient_b);
-    glColor3fv(mat_ambient_b);
 
-    glNormal3f(-1, 0, 0);
-    glVertex3f(width, 0, 0);
-    glNormal3f(-1, 0, 0);
-    glVertex3f(width, 0, length);
-    glNormal3f(-1, 0, 0);
-    glVertex3f(width, height, length);
-    glNormal3f(-1, 0, 0);
-    glVertex3f(width, height, 0);
-
-    glMaterialfv(GL_FRONT, GL_EMISSION, mat_ambient_c);
-    glColor3fv(mat_ambient_c);
-
-    glNormal3f(0, 0, 1);
-    glVertex3f(0, 0, 0);
-    glNormal3f(0, 0, 1);
-    glVertex3f(width, 0, 0);
-    glNormal3f(0, 0, 1);
-    glVertex3f(width, height, 0);
-    glNormal3f(0, 0, 1);
-    glVertex3f(0, height, 0);
-
-    glMaterialfv(GL_FRONT, GL_EMISSION, mat_ambient_y);
-    glColor3fv(mat_ambient_y);
-
-    glNormal3f(0, -1, 0);
-    glVertex3f(0, height, 0);
-    glNormal3f(0, -1, 0);
-    glVertex3f(width, height, 0);
-    glNormal3f(0, -1, 0);
-    glVertex3f(width, height, length);
-    glNormal3f(0, -1, 0);
-    glVertex3f(0, height, length);
-
-    glMaterialfv(GL_FRONT, GL_EMISSION, mat_ambient_p);
-    glColor3fv(mat_ambient_p);
-
-    glNormal3f(0, 1, 0);
-    glVertex3f(0, 0, 0);
-    glNormal3f(0, 1, 0);
-    glVertex3f(width, 0, 0);
-    glNormal3f(0, 1, 0);
-    glVertex3f(width, 0, length);
-    glNormal3f(0, 1, 0);
-    glVertex3f(0, 0, length);
+        glNormal3f(0, 0, 1);
+        glTexCoord2f (0, 0);
+        glVertex3f(0, 0, 0);
+        glNormal3f(0, 0, 1);
+        glTexCoord2f (1, 0);
+        glVertex3f(width, 0, 0);
+        
+        glNormal3f(0, 0, 1);
+        glTexCoord2f (1, 1);
+        glVertex3f(width, height, 0);
+        glNormal3f(0, 0, 1);
+        glTexCoord2f (0, 1);
+        glVertex3f(0, height, 0);
 
     glEnd();
 }
@@ -195,21 +226,11 @@ void initGL() {
     //glShadeModel(GL_SMOOTH);   // Enable smooth shading
     //glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);  // Nice perspective corrections
 
-    // Create light components.
-    //GLfloat ambientLight[] = { 0.2f, 0.2f, 0.2f, 1.0f };
-    //GLfloat diffuseLight[] = { 0.8f, 0.8f, 0.8, 1.0f };
-    //GLfloat specularLight[] = { 0.5f, 0.5f, 0.5f, 1.0f };
-    //GLfloat position[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-    //GLfloat position1[] = { 0.0f, 0.0f, -10.0f, 1.0f };
-
-    // Assign created components to GL_LIGHT0.
-    //glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
-    //glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
-    //glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
-    //glLightfv(GL_LIGHT0, GL_POSITION, position);
 
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
+    glEnable(GL_LIGHT1);
+    glEnable(GL_LIGHT2);
 }
 
 void drawObj(double size){   
@@ -251,37 +272,10 @@ void drawFloor(){
 
 void display() {
     CalculateFrameRate();
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear color and depth buffers
-    glMatrixMode(GL_MODELVIEW);     // To operate on model-view matrix
-    
-    // Render a color-cube consisting of 6 quads with different colors
-    glLoadIdentity();                 // Reset the model-view matrix
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glMatrixMode(GL_MODELVIEW);
 
-    
-    if(lightToggle){
-        GLfloat light_position[] = { arenaDimensions.x / 2, arenaDimensions.y, arenaDimensions.z / 2, 1.0 };
-        glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-    }
-    
-    else{
-        Point spot1 = player.pos;
-        spot1.y = arenaDimensions.y;
-
-        Point spot2 = computer.pos;
-        spot2.y = arenaDimensions.y;
-
-        GLfloat spot1_pos[] = {spot1.x, spot1.y, spot1.z};
-        GLfloat spot1_dir[] = {0, -1, 0};
-        glLightfv(GL_LIGHT1, GL_POSITION, spot1_pos);
-        glLightf(GL_LIGHT1, GL_SPOT_CUTOFF, 5.0);
-        glLightfv(GL_LIGHT1, GL_SPOT_DIRECTION, spot1_dir);
-
-        GLfloat spot2_pos[] = {spot2.x, spot2.y, spot2.z};
-        GLfloat spot2_dir[] = {0, -1, 0};
-        glLightfv(GL_LIGHT2, GL_POSITION, spot2_pos);
-        glLightf(GL_LIGHT2, GL_SPOT_CUTOFF, 5.0);
-        glLightfv(GL_LIGHT2, GL_SPOT_DIRECTION, spot2_dir);
-    }
+    glLoadIdentity();
     
     if(camSwitch == 1){
         Point p = player.getEyePos();
@@ -289,10 +283,6 @@ void display() {
     }
 
     else if(camSwitch == 2){
-        /*Point p = player.getPulsePos();
-        Point target = player.getPulseTarget();
-        gluLookAt(p.x, p.y, p.z, target.x + p.x, target.y + p.y, target.z + p.z, 0, 1, 0); se up puder ser constante 0, 1, 0 
-        */
         Point p = player.getPulsePos();
         Point target = player.getPulseTarget();
         Point up = player.getPulseUp();
@@ -300,12 +290,6 @@ void display() {
     }
 
     else if(camSwitch == 3){
-        /*
-        Point p = player.pos - (player.target * thirdPersonZoom) + Point(0, 2, 0);
-        //Point target = player.getCenterPos(); // fica balançando pois o centro do jogador varia ao andar.
-        Point target = player.pos + Point(0, 1, 0);
-        gluLookAt(p.x, p.y, p.z, target.x, target.y, target.z, 0, 1, 0);*/
-
         Point target = player.pos + Point(0, 1, 0);
         Point p = target;
         p += Point(zoom * sin(radians(horizontalAngle)) * cos(radians(verticalAngle)),
@@ -314,10 +298,34 @@ void display() {
 
         gluLookAt(p.x, p.y, p.z, target.x, target.y, target.z, 0, 1, 0);
     }
+
+    if(lightToggle){
+        GLfloat light_position[] = { arenaDimensions.x / 2, arenaDimensions.y, arenaDimensions.z / 2, 1.0 };
+        glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+    }
     
-    /*drawFloor();
-    DrawAxes(1.5);
-*/
+    else{
+        Point spot1 = player.pos; // luzes spot nao funcionam... nao sei por que.
+        spot1.y = arenaDimensions.y;
+
+        Point spot2 = computer.pos;
+        spot2.y = arenaDimensions.y;
+
+        GLfloat spot1_pos[] = {spot1.x, spot1.y, spot1.z};
+        GLfloat spot1_dir[] = {0, -1, 0};
+        glLightfv(GL_LIGHT1, GL_POSITION, spot1_pos);
+        glLightf(GL_LIGHT1, GL_SPOT_CUTOFF, 45.0);
+        glLightfv(GL_LIGHT1, GL_SPOT_DIRECTION, spot1_dir);
+        glLightf(GL_LIGHT1, GL_SPOT_EXPONENT, 128.0f);
+
+        GLfloat spot2_pos[] = {spot2.x, spot2.y, spot2.z};
+        GLfloat spot2_dir[] = {0, -1, 0};
+        glLightfv(GL_LIGHT2, GL_POSITION, spot2_pos);
+        glLightf(GL_LIGHT2, GL_SPOT_CUTOFF, 45.0);
+        glLightfv(GL_LIGHT2, GL_SPOT_DIRECTION, spot2_dir);
+        glLightf(GL_LIGHT2, GL_SPOT_EXPONENT, 128.0f);
+    }
+
     player.draw();
     computer.draw();
 
@@ -385,7 +393,20 @@ void keyboard(unsigned char key, int x, int y){
                 glEnable(GL_LIGHT1);
                 glEnable(GL_LIGHT2);
             }
+            break;
+        
+        case 'e':
+        case 'E':
+            enableComputer = !enableComputer;
 
+        case 'o':
+        case 'O':
+            player.punchStatus = 1;
+            break;
+
+        case 'p':
+        case 'P':
+            player.punchStatus = 2;
             break;
         
         case '+':
@@ -395,6 +416,8 @@ void keyboard(unsigned char key, int x, int y){
         case '-':
             zoom -= .1;
             break;
+
+        
         glutPostRedisplay();
     }
 }
@@ -462,11 +485,15 @@ void motion(int x, int y){
 void idle(void){
     static GLdouble previous_time = glutGet(GLUT_ELAPSED_TIME);
     GLdouble current_time, timeDiff;
+    static GLdouble computer_timer = 0;
     current_time = glutGet(GLUT_ELAPSED_TIME);
     timeDiff = current_time - previous_time;
     previous_time = current_time;
+    computer_timer += timeDiff;
 
     GLfloat inc = INC_KEYIDLE / 5;
+
+    computer.lookAt(player);
 
     if(keyStatus[(int)('w')]){
         player.move(inc, computer, timeDiff, arenaDimensions);
@@ -483,23 +510,54 @@ void idle(void){
         player.rotate(-inc, timeDiff);
     }
 
+    if(enableComputer){
+        if(computer.aggressive){
+            computer.move(inc, player, timeDiff, arenaDimensions);
+            computer.nextWalkingPose();
+            if(computer.punchStatus == 0 && computer.inPunchingDistance(player)){
+                if(rand() % 2){
+                    computer.punchStatus = 1; // soco direito
+                }
+                else{
+                    computer.punchStatus = 2; // soco esquerdo
+                }
+            }
+        }
+        else{
+            computer.move(-inc, player, timeDiff, arenaDimensions);
+            computer.prevWalkingPose();
+        }
+    }
+
+    if(computer.punchStatus){
+        computer.punch(timeDiff);
+    }
+
+    if(computer.punchStatus && computer.hit(player)){
+        printf("Computer hit player.\n");
+    }
+
     if(leftMouseButtonDown && player.hit(computer)){ // curto circuito pra não ficar calculando
-        printf("Hit!\n");                            //  hit o tempo inteiro
+        printf("Player hit computer.!\n");           //  hit o tempo inteiro
+    }
+
+    if(computer_timer > 5000){
+        computer_timer = 0;
+        computer.aggressive = !computer.aggressive;
     }
 
     glutPostRedisplay();
 }
 
-
-/* Main function: GLUT runs as a console application starting at main() */
 int main(int argc, char** argv) {
-    glutInit(&argc, argv);            // Initialize GLUT
-    glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE); // Enable double buffered mode
-    glutInitWindowSize(1280, 720);   // Set the window's initial width & height
-    glutInitWindowPosition(50, 50); // Position the window's initial top-left corner
-    glutCreateWindow(title);          // Create window with the given title
-    glutDisplayFunc(display);       // Register callback handler for window re-paint event
-    glutReshapeFunc(reshape);       // Register callback handler for window re-size event
+    srand(time(NULL));
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE);
+    glutInitWindowSize(1280, 720);
+    glutInitWindowPosition(50, 50);
+    glutCreateWindow(title);
+    glutDisplayFunc(display);
+    glutReshapeFunc(reshape);
     glutKeyboardFunc(keyboard);
     glutKeyboardUpFunc(keyUp);
     glutMotionFunc(motion);
@@ -513,6 +571,10 @@ int main(int argc, char** argv) {
     computer.load("./models/michelle/animations/", LoadTextureRAW("./models/michelle/michelle.bmp"), "./models/michelle/michelle.config");
     computer.pos = Point(8, 0, 8);
     computer.toggleDebug();
+
+    skyTexture = LoadTextureRAW("./stars1.bmp");
+    floorTexture = LoadTextureRAW("./rockysoil.bmp");
+    wallTexture = LoadTextureRAW("./walls.bmp");
     glutMainLoop();
     
     return 0;

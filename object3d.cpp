@@ -147,12 +147,14 @@ void Object3D::load(const char* inputdir, GLuint texture, const char* config){
     }
 
     this->texture = texture;
-    this->currentPose = walkFirst;
-    this->punchFrames = this->rightPunchLast - this->rightPunchFirst;
+    currentPose = walkFirst;
+    punchFrames = rightPunchLast - rightPunchFirst;
     debug = 0;
     pos = Point(0, 0, 0);
     target = Point(0, 0, 1);
     theta = 0;
+    punchStatus = 0;
+    aggressive = 1;
 }
 
 void Object3D::draw(){
@@ -439,4 +441,47 @@ int Object3D::hit(Object3D target){
     Point rightHand = this->getRightHand();
 
     return leftHand.distance(headCenter) < distance || rightHand.distance(headCenter) < distance;
+}
+
+void Object3D::lookAt(Object3D target){
+    theta = atan2(target.pos.x - pos.x, target.pos.z - pos.z) * 180 / M_PI;
+    this->target = Point(0, 0, 1).rotatePoint(theta);
+}
+
+void Object3D::punch(GLdouble timeDiff){
+    static GLdouble punchTime = 0.0f;
+    punchTime += timeDiff;
+    
+    if(punchTime > TIME_TO_PUNCH){
+        punchTime = 0.0f;
+        punchStatus = 0;
+        this->setPose(walkFirst);
+        return;
+    }
+
+    if(punchStatus == 1){
+        if(punchTime < TIME_TO_PUNCH / 2){
+            GLuint pose = round(((GLdouble)punchFrames / (TIME_TO_PUNCH / 2)) * punchTime);
+            this->setPose(pose);
+        }
+        else if(punchTime > TIME_TO_PUNCH / 2){
+            GLuint pose = round(((GLdouble)punchFrames / (TIME_TO_PUNCH / 2)) * punchTime * -1) + 2 * punchFrames;
+            this->setPose(pose);
+        }
+    }
+
+    else if(punchStatus == 2){
+        if(punchTime < TIME_TO_PUNCH / 2){
+            GLuint pose = round(((GLdouble)punchFrames / (TIME_TO_PUNCH / 2)) * punchTime);
+            this->setPose(pose + punchFrames + 1);
+        }
+        else if(punchTime > TIME_TO_PUNCH / 2){
+            GLuint pose = round(((GLdouble)punchFrames / (TIME_TO_PUNCH / 2)) * punchTime * -1) + 2 * punchFrames;
+            this->setPose(pose + punchFrames + 1);
+        }
+    }
+}
+
+int Object3D::inPunchingDistance(Object3D target){
+    return pos.distance(target.pos) < 2.5 * BODY_RADIUS;   
 }
