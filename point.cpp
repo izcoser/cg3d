@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "point.h"
 #include "math.h"
 
@@ -68,6 +69,10 @@ Point Point::rotatePoint(GLfloat theta){
 
 Point Point::scale(Point s){
     return Point(x * s.x, y * s.y, z * s.z);
+}
+
+void Point::print(char terminator){
+    printf("%f,%f,%f%c", x, y, z, terminator);
 }
 
 /*

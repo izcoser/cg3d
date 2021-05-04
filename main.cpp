@@ -5,6 +5,7 @@
 #include "point.h"
 #include "object3d.h"
 #include "imageloader.h"
+#include "tinyxml2.h"
 
 #include <list>
 
@@ -33,7 +34,7 @@ GLfloat verticalAngle = 45;
 int leftMouseButtonDown = 0;
 int rightMouseButtonDown = 0;
 
-Point arenaDimensions(10, 3, 10);
+Point arenaDimensions;
 
 int lightToggle = 1;
 
@@ -42,6 +43,94 @@ int floorTexture;
 int wallTexture;
 
 int enableComputer = 0;
+int FPS = 0;
+
+int width = 500;
+int height = 700;
+
+int toggleDividedViewPort = 0;
+
+void DrawAxes(double size)
+{
+    GLfloat mat_ambient_r[] = { 1.0, 0.0, 0.0, 1.0 };
+    GLfloat mat_ambient_g[] = { 0.0, 1.0, 0.0, 1.0 };
+    GLfloat mat_ambient_b[] = { 0.0, 0.0, 1.0, 1.0 };
+    GLfloat no_mat[] = { 0.0, 0.0, 0.0, 1.0 };
+    glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
+            no_mat);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, no_mat);
+    glMaterialfv(GL_FRONT, GL_SHININESS, no_mat);
+
+    //x axis
+    glPushMatrix();
+        glMaterialfv(GL_FRONT, GL_EMISSION, mat_ambient_r);
+        glColor3fv(mat_ambient_r);
+        glScalef(size, size*0.1, size*0.1);
+        glTranslatef(0.5, 0, 0); // put in one end
+        glutSolidCube(1.0);
+    glPopMatrix();
+
+    //y axis
+    glPushMatrix();
+        glMaterialfv(GL_FRONT, GL_EMISSION, mat_ambient_g);
+        glColor3fv(mat_ambient_g);
+        glRotatef(90,0,0,1);
+        glScalef(size, size*0.1, size*0.1);
+        glTranslatef(0.5, 0, 0); // put in one end
+        glutSolidCube(1.0);
+    glPopMatrix();
+
+    //z axis
+    glPushMatrix();
+        glMaterialfv(GL_FRONT, GL_EMISSION, mat_ambient_b);
+        glColor3fv(mat_ambient_b);
+        glRotatef(-90,0,1,0);
+        glScalef(size, size*0.1, size*0.1);
+        glTranslatef(0.5, 0, 0); // put in one end
+        glutSolidCube(1.0);
+    glPopMatrix();
+    
+}
+
+void RasterChars(GLfloat x, GLfloat y, GLfloat z, const char * text, double r, double g, double b, int font)
+{
+    //Push to recover original attributes
+    glPushAttrib(GL_ENABLE_BIT);
+        glDisable(GL_LIGHTING);
+        glDisable(GL_TEXTURE_2D);
+        //Draw text in the x, y, z position
+        glColor3f(r,g,b);
+        glRasterPos3f(x, y, z);
+        const char* tmpStr;
+        tmpStr = text;
+        if(font == 1){
+            while( *tmpStr ){
+                glutBitmapCharacter(GLUT_BITMAP_9_BY_15, *tmpStr);
+                tmpStr++;
+            }
+        }
+        else{
+            while( *tmpStr ){
+                glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, *tmpStr);
+                tmpStr++;
+            }
+        }
+        
+    glPopAttrib();
+}
+
+void PrintText(GLfloat x, GLfloat y, const char * text, double r, double g, double b, int font)
+{
+    //Draw text considering a 2D space (disable all 3d features)
+    glMatrixMode (GL_PROJECTION);
+    //Push to recover original PROJECTION MATRIX
+    glPushMatrix();
+        glLoadIdentity ();
+        glOrtho (0, 1, 0, 1, -1, 1);
+        RasterChars(x, y, 0, text, r, g, b, font);    
+    glPopMatrix();
+    glMatrixMode (GL_MODELVIEW);
+}
 
 void CalculateFrameRate(){
     static float framesPerSecond = 0.0f;
@@ -51,12 +140,164 @@ void CalculateFrameRate(){
     if( currentTime - lastTime > 1000.0f )
     {
         lastTime = currentTime;
-        printf("FPS: %d\n", (int)framesPerSecond);
+        //printf("FPS: %d\n", (int)framesPerSecond);
+        FPS = (int)framesPerSecond;
         framesPerSecond = 0;
     }
 }
 
+void drawSquareTile(double dimension, GLuint texture){
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glNormal3f(0, 1, 0);
+    glBegin(GL_QUADS);
+        glTexCoord2f(0, 0);
+        glVertex3f(- dimension / 2, 0,  - dimension / 2);
+        
+        glTexCoord2f(0, 1);
+        glVertex3f(- dimension / 2, 0,  dimension / 2);
+        
+        glTexCoord2f(1, 1);
+        glVertex3f(dimension / 2, 0,  dimension / 2);
+        
+        glTexCoord2f(1, 0);
+        glVertex3f(dimension / 2, 0,  - dimension / 2);
 
+    glEnd();
+}
+/*
+void drawPlane(double width, double length, GLuint texture, int type){
+    
+    double tileDim = 1;
+    int x = (int) (width / tileDim);
+    int y = (int) (length / tileDim);
+    //printf("%d, %d\n", x, y);
+
+    if(type == 0){
+        Point start(0, 0, 0);
+        for(int i = 0; i < x; i++){
+            for(int j = 0; j < y; j++){
+                Point pos = start + Point(i * tileDim, 0, j * tileDim);
+                drawSquareTile(tileDim, texture, pos, type);
+            }
+        }
+    }
+
+    if(type == 1){
+        Point start(0, 3, 0);
+        for(int i = 0; i < x; i++){
+            for(int j = 0; j < y; j++){
+                Point pos = start + Point(i * tileDim, 0, j * tileDim);
+                drawSquareTile(tileDim, texture, pos, type);
+            }
+        }
+    }
+
+    else if(type == 2){
+        Point start(0, 0, 0);
+        for(int i = 0; i < x; i++){
+            for(int j = 0; j < y; j++){
+                Point pos = start + Point(0, i * tileDim, j * tileDim);
+                drawSquareTile(tileDim, texture, pos, type);
+            }
+        }
+    }
+
+    else if(type == 3){
+        Point start(0, 0, 10);
+        for(int i = 0; i < x; i++){
+            for(int j = 0; j < y; j++){
+                Point pos = start + Point(i * tileDim, j * tileDim, 0);
+                drawSquareTile(tileDim, texture, pos, type);
+            }
+        }
+    }
+
+    else if(type == 4){
+        Point start(10, 0, 0);
+        for(int i = 0; i < x; i++){
+            for(int j = 0; j < y; j++){
+                Point pos = start + Point(0, i * tileDim, j * tileDim);
+                drawSquareTile(tileDim, texture, pos, type);
+            }
+        }
+    }
+
+    else if(type == 5){
+        Point start(0, 0, 0);
+        for(int i = 0; i < x; i++){
+            for(int j = 0; j < y; j++){
+                Point pos = start + Point(i * tileDim, j * tileDim, 0);
+                drawSquareTile(tileDim, texture, pos, type);
+            }
+        }
+    }
+}
+
+void drawFloor(double width, double length){
+    double tileDim = 1;
+    int x = (int) (width / tileDim);
+    int y = (int) (length / tileDim);
+    Point start(0, 0, 0);
+    for(int i = 0; i < x; i++){
+        for(int j = 0; j < y; j++){
+            Point pos = start + Point(i * tileDim, 0, j * tileDim);
+            drawSquareTile(tileDim, floorTexture, pos, 0);
+        }
+    }
+}
+
+void drawSky(double width, double length, double at){
+    double tileDim = 1;
+    int x = (int) (width / tileDim);
+    int y = (int) (length / tileDim);
+    Point start(0, at, 0);
+    for(int i = 0; i < x; i++){
+        for(int j = 0; j < y; j++){
+            Point pos = start + Point(i * tileDim, 0, j * tileDim);
+            drawSquareTile(tileDim, skyTexture, pos, 1);
+        }
+    }
+}
+
+void drawLeftWall(double height, double length){
+    double tileDim = 1;
+    int x = (int) (height / tileDim);
+    int y = (int) (length / tileDim);
+    Point start(0, 0, 0);
+    for(int i = 0; i < x; i++){
+        for(int j = 0; j < y; j++){
+            Point pos = start + Point(0, i * tileDim, j * tileDim);
+            drawSquareTile(tileDim, wallTexture, pos, 2);
+        }
+    }
+}
+
+void drawFundo(double height, double length){
+    double tileDim = 1;
+    int x = (int) (height / tileDim);
+    int y = (int) (length / tileDim);
+    Point start(0, 0, 0);
+    for(int i = 0; i < x; i++){
+        for(int j = 0; j < y; j++){
+            Point pos = start + Point(0, i * tileDim, j * tileDim);
+            drawSquareTile(tileDim, wallTexture, pos, 2);
+        }
+    }
+}
+
+void drawRightWall(double height, double length, double at){
+    double tileDim = 1;
+    int x = (int) (height / tileDim);
+    int y = (int) (length / tileDim);
+    Point start(0, 0, 0);
+    for(int i = 0; i < x; i++){
+        for(int j = 0; j < y; j++){
+            Point pos = start + Point(0, i * tileDim, j * tileDim);
+            drawSquareTile(tileDim, wallTexture, pos, 4);
+        }
+    }
+}
+*/
 void drawArena(double width, double height, double length){
     GLfloat materialEmission[] = { 0.1, 0.1, 0.1, 1};
     GLfloat materialColorA[] = { 0.1, 0.1, 0.1, 1};
@@ -74,139 +315,62 @@ void drawArena(double width, double height, double length){
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT  );//X
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );//Y
 
-    glBindTexture (GL_TEXTURE_2D, skyTexture);
-    glBegin(GL_QUADS); // sky
-        glNormal3f(0, -1, 0);
-        glTexCoord2f (0, 0);
-        glVertex3f(0, height, 0);
-        glNormal3f(0, -1, 0);
-        glTexCoord2f (1, 0);
-        glVertex3f(width, height, 0);
-        glNormal3f(0, -1, 0);
-        glTexCoord2f (1, 1);
-        glVertex3f(width, height, length);
-        glNormal3f(0, -1, 0);
-        glTexCoord2f (0, 1);
-        glVertex3f(0, height, length);
-    glEnd();
+    double tileDim = 0.5;
+    //floor and sky
+    int x = (int)(width / tileDim); // x tiles in width
+    int y = (int)(length / tileDim); // y tiles in length
+    for(int i = 0; i < x; i++){
+        for(int j = 0; j < y; j++){
+            glPushMatrix();
+            glTranslatef(tileDim / 2 + i * tileDim, 0, tileDim / 2 + j * tileDim);
+            drawSquareTile(tileDim, floorTexture);
+            glPopMatrix();
 
-    glBindTexture (GL_TEXTURE_2D, floorTexture);
-    glBegin(GL_QUADS); //floor
-        glNormal3f(0, 1, 0);
-        glTexCoord2f (0, 0);
-        glVertex3f(0, 0, 0);
-        glNormal3f(0, 1, 0);
-        glTexCoord2f (1, 0);
-        glVertex3f(width, 0, 0);
-        glNormal3f(0, 1, 0);
-        glTexCoord2f (1, 1);
-        glVertex3f(width, 0, length);
-        glNormal3f(0, 1, 0);
-        glTexCoord2f (0, 1);
-        glVertex3f(0, 0, length);
-    glEnd();
+            glPushMatrix();
+            glTranslatef(tileDim / 2 + i * tileDim, height, tileDim / 2 + j * tileDim);
+            glRotatef(180, 0, 0, 1);
+            drawSquareTile(tileDim, skyTexture);
+            glPopMatrix();
+        }
+    }
 
-    glBindTexture (GL_TEXTURE_2D, wallTexture);
-    glBegin(GL_QUADS); //walls
+    //left and right walls
+    x = (int)(width / tileDim); // x tiles in width
+    y = (int)(height / tileDim); // y tiles in height
+    for(int i = 0; i < x; i++){
+        for(int j = 0; j < y; j++){
+            glPushMatrix();
+            glTranslatef(tileDim / 2 + i * tileDim, tileDim / 2 + j * tileDim, 0);
+            glRotatef(90, 1, 0, 0);
+            drawSquareTile(tileDim, wallTexture);
+            glPopMatrix();
 
-        glNormal3f(1, 0, 0);
-        glTexCoord2f (0, 0);
-        glVertex3f(0, 0, 0);
-        glNormal3f(1, 0, 0);
-        glTexCoord2f (1, 0);
-        glVertex3f(0, 0, length);
-        glNormal3f(1, 0, 0);
-        glTexCoord2f (1, 1);
-        glVertex3f(0, height, length);
-        glNormal3f(1, 0, 0);
-        glTexCoord2f (0, 1);
-        glVertex3f(0, height, 0);
+            glPushMatrix();
+            glTranslatef(tileDim / 2 + i * tileDim, tileDim / 2 + j * tileDim, length);
+            glRotatef(-90, 1, 0, 0);
+            drawSquareTile(tileDim, wallTexture);
+            glPopMatrix();
+        }
+    }
 
+    // back and front walls
+    x = (int)(length / tileDim); // x tiles in length
+    y = (int)(height / tileDim); // y tiles in height
+    for(int i = 0; i < x; i++){
+        for(int j = 0; j < y; j++){
+            glPushMatrix();
+            glTranslatef(0, tileDim / 2 + j * tileDim, tileDim / 2 + i * tileDim);
+            glRotatef(-90, 0, 0, 1);
+            drawSquareTile(tileDim, wallTexture);
+            glPopMatrix();
 
-        glNormal3f(0, 0, -1);
-        glTexCoord2f (0, 0);
-        glVertex3f(0, 0, length);
-        glNormal3f(0, 0, -1);
-        glTexCoord2f (1, 0);
-        glVertex3f(width, 0, length);
-        glNormal3f(0, 0, -1);
-        glTexCoord2f (1, 1);
-        glVertex3f(width, height, length);
-        glNormal3f(0, 0, -1);
-        glTexCoord2f (0, 1);
-        glVertex3f(0, height, length);
-
-        glNormal3f(-1, 0, 0);
-        glTexCoord2f (0, 0);
-        glVertex3f(width, 0, 0);
-        glNormal3f(-1, 0, 0);
-        glTexCoord2f (1, 0);
-        glVertex3f(width, 0, length);
-        glNormal3f(-1, 0, 0);
-        glTexCoord2f (1, 1);
-        glVertex3f(width, height, length);
-        glNormal3f(-1, 0, 0);
-        glTexCoord2f (0, 1);
-        glVertex3f(width, height, 0);
-
-
-        glNormal3f(0, 0, 1);
-        glTexCoord2f (0, 0);
-        glVertex3f(0, 0, 0);
-        glNormal3f(0, 0, 1);
-        glTexCoord2f (1, 0);
-        glVertex3f(width, 0, 0);
-        
-        glNormal3f(0, 0, 1);
-        glTexCoord2f (1, 1);
-        glVertex3f(width, height, 0);
-        glNormal3f(0, 0, 1);
-        glTexCoord2f (0, 1);
-        glVertex3f(0, height, 0);
-
-    glEnd();
-}
-
-void DrawAxes(double size){
-    GLfloat mat_ambient_r[] = { 1.0, 0.0, 0.0, 1.0 };
-    GLfloat mat_ambient_g[] = { 0.0, 1.0, 0.0, 1.0 };
-    GLfloat mat_ambient_b[] = { 0.0, 0.0, 1.0, 1.0 };
-    GLfloat no_mat[] = { 0.0, 0.0, 0.0, 1.0 };
-    glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
-            no_mat);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, no_mat);
-    glMaterialfv(GL_FRONT, GL_SHININESS, no_mat);
-
-    //x axis red
-    glPushMatrix();
-        glMaterialfv(GL_FRONT, GL_EMISSION, 
-                mat_ambient_r);
-        glColor3fv(mat_ambient_r);
-        glScalef(size, size*0.1, size*0.1);
-        glTranslatef(0.5, 0, 0); // put in one end
-        glutSolidCube(1.0);
-    glPopMatrix();
-
-    //y axis green
-    glPushMatrix();
-        glMaterialfv(GL_FRONT, GL_EMISSION, 
-                mat_ambient_g);
-        glColor3fv(mat_ambient_g);
-        glRotatef(90,0,0,1);
-        glScalef(size, size*0.1, size*0.1);
-        glTranslatef(0.5, 0, 0); // put in one end
-        glutSolidCube(1.0);
-    glPopMatrix();
-
-    //z axis blue
-    glPushMatrix();
-        glMaterialfv(GL_FRONT, GL_EMISSION, mat_ambient_b);
-        glColor3fv(mat_ambient_b);
-        glRotatef(-90,0,1,0);
-        glScalef(size, size*0.1, size*0.1);
-        glTranslatef(0.5, 0, 0); // put in one end
-        glutSolidCube(1.0);
-    glPopMatrix();    
+            glPushMatrix();
+            glTranslatef(width, tileDim / 2 + j * tileDim, tileDim / 2 + i * tileDim);
+            glRotatef(90, 0, 0, 1);
+            drawSquareTile(tileDim, wallTexture);
+            glPopMatrix();
+        }
+    }
 }
 
 GLuint LoadTextureRAW( const char * filename );
@@ -215,59 +379,42 @@ GLfloat radians(GLfloat degrees){
     return degrees * M_PI / 180;
 }
  
-/* Initialize OpenGL Graphics */
 void initGL() {
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // Set background color to black and opaque
-    glClearDepth(1.0f);                   // Set background depth to farthest
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearDepth(1.0f);
     glEnable(GL_TEXTURE_2D);
-    glEnable(GL_DEPTH_TEST);   // Enable depth testing for z-culling
-    glDepthFunc(GL_LEQUAL);    // Set the type of depth-test
-    //glEnable(GL_CULL_FACE); //?
-    //glShadeModel(GL_SMOOTH);   // Enable smooth shading
-    //glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);  // Nice perspective corrections
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
+    glShadeModel(GL_SMOOTH);
 
 
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
-    glEnable(GL_LIGHT1);
-    glEnable(GL_LIGHT2);
+    GLfloat diffuseAndSpecularLight[] = {1, 1, 1, 1};
+    glLightfv(GL_LIGHT1, GL_DIFFUSE, diffuseAndSpecularLight);
+    glLightfv(GL_LIGHT1, GL_SPECULAR, diffuseAndSpecularLight);
+    glLightfv(GL_LIGHT2, GL_DIFFUSE, diffuseAndSpecularLight);
+    glLightfv(GL_LIGHT2, GL_SPECULAR, diffuseAndSpecularLight);
 }
 
-void drawObj(double size){   
-    GLfloat materialEmission[] = { 0.00, 0.00, 0.00, 1.0};
-    GLfloat materialColor[] = { 1.0, 1.0, 1.0, 1.0};
-    GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0};
-    GLfloat mat_shininess[] = { 128 };
-    glMaterialfv(GL_FRONT, GL_EMISSION, materialEmission);
-    glMaterialfv(GL_FRONT, GL_AMBIENT, materialColor);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, materialColor);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
-    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
-    glColor3f(1,0,0);
-    glutSolidCube(size);
-    //glutSolidSphere(size, 20, 10);
-}
-
-void drawFloor(){
-    GLfloat materialEmission[] = { 0.00, 0.00, 0.00, 1.0};
-    GLfloat materialColor[] = { 1.0, 1.0, 1.0, 1.0};
-    GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0};
-    GLfloat mat_shininess[] = { 128 };
-    glMaterialfv(GL_FRONT, GL_EMISSION, materialEmission);
-    glMaterialfv(GL_FRONT, GL_AMBIENT, materialColor);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, materialColor);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
-    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
+void placeLights(){
+    if(lightToggle){
+        GLfloat lightPosition[] = { arenaDimensions.x / 2, 2, arenaDimensions.z / 2, 1.0 };
+        glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
+    }
     
-    glBegin(GL_LINES);
-        for(int i = -100; i < 100; i += 4){
-            glVertex3f(i, 0, 0);
-            glVertex3f(i, 0, 100);
+    else{
+        GLfloat playerSpot[] = { player.pos.x, 3, player.pos.z, 1.0 };
+        GLfloat spotDir[] = {0, -1, 0};
+        glLightfv(GL_LIGHT1, GL_POSITION, playerSpot);
+        glLightf(GL_LIGHT1, GL_SPOT_CUTOFF, 30.0);
+        glLightfv(GL_LIGHT1, GL_SPOT_DIRECTION, spotDir);
 
-            glVertex3f(-100, 0, i);
-            glVertex3f(0, 0, i);
-        }
-    glEnd();
+        GLfloat computerSpot[] = { computer.pos.x, 3, computer.pos.z, 1.0};
+        glLightfv(GL_LIGHT2, GL_POSITION, computerSpot);
+        glLightf(GL_LIGHT2, GL_SPOT_CUTOFF, 30.0);
+        glLightfv(GL_LIGHT2, GL_SPOT_DIRECTION, spotDir);
+    }
 }
 
 void display() {
@@ -276,7 +423,39 @@ void display() {
     glMatrixMode(GL_MODELVIEW);
 
     glLoadIdentity();
-    
+
+    char FPSstring[50];
+    snprintf(FPSstring, 12, "FPS: %d", FPS);
+    PrintText(0.8, 0.95, FPSstring, 0, 1, 0, 1);
+
+    char Scorestring[50];
+    snprintf(Scorestring, 30, "Player %d x %d Computer", player.score, computer.score);
+    PrintText(0.20, 0.95, Scorestring, 0, 1, 0, 1);
+
+    if(toggleDividedViewPort){
+        glViewport(0, 0, width, 200);
+        glLoadIdentity();
+        Point cp = computer.getEyePos();
+        gluLookAt(cp.x, cp.y, cp.z, computer.target.x + cp.x, computer.target.y + cp.y, computer.target.z + cp.z, 0, 1, 0);
+        placeLights();
+        player.draw();
+        computer.draw();
+        drawArena(arenaDimensions.x, arenaDimensions.y, arenaDimensions.z);
+        glViewport(0, 200, width, height - 200);
+        glLoadIdentity();
+    }
+
+    if(computer.score == 10){
+        char resultString[100];
+        snprintf(resultString, 100, "Voce perdeu do computador por %d x %d!", player.score, computer.score);
+        PrintText(0.1, 0.2, resultString, 0, 1, 0, 2);
+    }
+    else if(player.score == 10){
+        char resultString[100];
+        snprintf(resultString, 100, "Voce ganhou do computador por %d x %d!", player.score, computer.score);
+        PrintText(0.1, 0.2, resultString, 0, 1, 0, 2);
+    }
+
     if(camSwitch == 1){
         Point p = player.getEyePos();
         gluLookAt(p.x, p.y, p.z, player.target.x + p.x, player.target.y + p.y, player.target.z + p.z, 0, 1, 0);
@@ -299,53 +478,21 @@ void display() {
         gluLookAt(p.x, p.y, p.z, target.x, target.y, target.z, 0, 1, 0);
     }
 
-    if(lightToggle){
-        GLfloat light_position[] = { arenaDimensions.x / 2, arenaDimensions.y, arenaDimensions.z / 2, 1.0 };
-        glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-    }
-    
-    else{
-        Point spot1 = player.pos; // luzes spot nao funcionam... nao sei por que.
-        spot1.y = arenaDimensions.y;
-
-        Point spot2 = computer.pos;
-        spot2.y = arenaDimensions.y;
-
-        GLfloat spot1_pos[] = {spot1.x, spot1.y, spot1.z};
-        GLfloat spot1_dir[] = {0, -1, 0};
-        glLightfv(GL_LIGHT1, GL_POSITION, spot1_pos);
-        glLightf(GL_LIGHT1, GL_SPOT_CUTOFF, 45.0);
-        glLightfv(GL_LIGHT1, GL_SPOT_DIRECTION, spot1_dir);
-        glLightf(GL_LIGHT1, GL_SPOT_EXPONENT, 128.0f);
-
-        GLfloat spot2_pos[] = {spot2.x, spot2.y, spot2.z};
-        GLfloat spot2_dir[] = {0, -1, 0};
-        glLightfv(GL_LIGHT2, GL_POSITION, spot2_pos);
-        glLightf(GL_LIGHT2, GL_SPOT_CUTOFF, 45.0);
-        glLightfv(GL_LIGHT2, GL_SPOT_DIRECTION, spot2_dir);
-        glLightf(GL_LIGHT2, GL_SPOT_EXPONENT, 128.0f);
-    }
+    placeLights();
 
     player.draw();
     computer.draw();
-
     drawArena(arenaDimensions.x, arenaDimensions.y, arenaDimensions.z);
 
     glutSwapBuffers();
 }
 
-void reshape(GLsizei width, GLsizei height) {  // GLsizei for non-negative integer
-   // Compute aspect ratio of the new window
-   if (height == 0) height = 1;                // To prevent divide by 0
+void reshape(GLsizei width, GLsizei height) {
+   if (height == 0) height = 1;
    GLfloat aspect = (GLfloat)width / (GLfloat)height;
- 
-   // Set the viewport to cover the new window
    glViewport(0, 0, width, height);
- 
-   // Set the aspect ratio of the clipping volume to match the viewport
-   glMatrixMode(GL_PROJECTION);  // To operate on the Projection matrix
-   glLoadIdentity();             // Reset
-   // Enable perspective projection with fovy, aspect, zNear and zFar
+   glMatrixMode(GL_PROJECTION);
+   glLoadIdentity();
    gluPerspective(45.0f, aspect, 0.1f, 100.0f);
 }
  
@@ -379,6 +526,7 @@ void keyboard(unsigned char key, int x, int y){
         case 'z':
         case 'Z':
             player.toggleDebug();
+            computer.toggleDebug();
             break;
         case 'n':
         case 'N':
@@ -398,15 +546,21 @@ void keyboard(unsigned char key, int x, int y){
         case 'e':
         case 'E':
             enableComputer = !enableComputer;
-
-        case 'o':
-        case 'O':
-            player.punchStatus = 1;
             break;
 
-        case 'p':
-        case 'P':
-            player.punchStatus = 2;
+        case 'r':
+        case 'R':
+            computer.score = player.score = 0;
+            player.pos = player.startPos;
+            computer.pos = computer.startPos;
+            break;
+
+        case 'f':
+        case 'F':
+            toggleDividedViewPort = !toggleDividedViewPort;
+            if(!toggleDividedViewPort){
+                glViewport(0, 0, width, height);
+            }
             break;
         
         case '+':
@@ -416,8 +570,6 @@ void keyboard(unsigned char key, int x, int y){
         case '-':
             zoom -= .1;
             break;
-
-        
         glutPostRedisplay();
     }
 }
@@ -458,8 +610,8 @@ void motion(int x, int y){
         if(verticalAngle > 89.0f){
             verticalAngle = 89.0f;
         }
-        if(verticalAngle < 1.0f){
-            verticalAngle = 1.0f;
+        if(verticalAngle < -89.0f){
+            verticalAngle = -89.0f;
         }
 
         xMouse = x;
@@ -483,6 +635,10 @@ void motion(int x, int y){
 }
 
 void idle(void){
+    if(computer.score == 10 || player.score == 10){
+        return;
+    }
+
     static GLdouble previous_time = glutGet(GLUT_ELAPSED_TIME);
     GLdouble current_time, timeDiff;
     static GLdouble computer_timer = 0;
@@ -534,11 +690,23 @@ void idle(void){
     }
 
     if(computer.punchStatus && computer.hit(player)){
-        printf("Computer hit player.\n");
+        if(computer.hitEnabled){
+            computer.score += 1;
+            computer.hitEnabled = 0;
+        }
+    }
+    else{
+        computer.hitEnabled = 1;
     }
 
-    if(leftMouseButtonDown && player.hit(computer)){ // curto circuito pra não ficar calculando
-        printf("Player hit computer.!\n");           //  hit o tempo inteiro
+    if(leftMouseButtonDown && player.hit(computer)){
+        if(player.hitEnabled){
+            player.score += 1;
+            player.hitEnabled = 0;
+        }
+    }
+    else{
+        player.hitEnabled = 1;
     }
 
     if(computer_timer > 5000){
@@ -551,9 +719,37 @@ void idle(void){
 
 int main(int argc, char** argv) {
     srand(time(NULL));
+
+    tinyxml2::XMLDocument doc;
+    doc.LoadFile(argv[1]);
+    tinyxml2::XMLElement* rect = doc.FirstChildElement("svg")->FirstChildElement("rect");
+    int rect_x = atoi(rect->Attribute("x"));
+    int rect_y = atoi(rect->Attribute("y"));
+
+    arenaDimensions.x = (GLfloat)atof(rect->Attribute("width")) / 50;
+    arenaDimensions.z = (GLfloat)atof(rect->Attribute("height")) / 50;
+    arenaDimensions.y = 3;
+
+    tinyxml2::XMLElement* circle_1 = doc.FirstChildElement("svg")->FirstChildElement("circle");
+    int circle_1_x = (atoi(circle_1->Attribute("cx")) - rect_x) /50;
+    int circle_1_y = (atoi(circle_1->Attribute("cy")) - rect_y) /50;
+    int circle_1_r = atoi(circle_1->Attribute("r"));
+    const char* circle_1_fill = circle_1->Attribute("fill");
+
+    tinyxml2::XMLElement* circle_2 = doc.FirstChildElement("svg")->LastChildElement("circle");
+    int circle_2_x = (atoi(circle_2->Attribute("cx")) - rect_x) /50;
+    int circle_2_y = (atoi(circle_2->Attribute("cy")) - rect_y) /50;
+    int circle_2_r = atoi(circle_2->Attribute("r"));
+
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE);
-    glutInitWindowSize(1280, 720);
+
+    if(argc > 2 && strcmp(argv[2], "full") == 0){
+        width = 1280;
+        height = 720;
+    }
+
+    glutInitWindowSize(width, height);
     glutInitWindowPosition(50, 50);
     glutCreateWindow(title);
     glutDisplayFunc(display);
@@ -564,16 +760,29 @@ int main(int argc, char** argv) {
     glutMouseFunc(mouse);
     glutIdleFunc(idle);
     initGL();
-    player.load("./models/amy/animations/", "./models/amy/decimated/", LoadTextureRAW("./models/amy/amy.bmp"), "./models/amy/amy.config");
-    player.pos = Point(1, 0, 1);
+    player.load("./models/amy/decimated/", LoadTextureRAW("./models/amy/amy.bmp"), "./models/amy/amy.points", "./models/amy/amy.newconfig");
+    computer.load("./models/michelle/decimated/", LoadTextureRAW("./models/michelle/michelle.bmp"), "./models/michelle/michelle.points", "./models/michelle/michelle.newconfig");
 
-    computer.load("./models/michelle/animations/", "./models/michelle/decimated/", LoadTextureRAW("./models/michelle/michelle.bmp"), "./models/michelle/michelle.config");
-    computer.pos = Point(8, 0, 8);
-    computer.toggleDebug();
+    if(strcmp(circle_1_fill, "green") == 0){ // O jogador e sempre o verde.
+        player.pos = player.startPos = Point(circle_1_x, 0, circle_1_y);
+        computer.pos = computer.startPos = Point(circle_2_x, 0, circle_2_y);
+    }
+    else{
+        player.pos = player.startPos = Point(circle_2_x, 0, circle_2_y);
+        computer.pos = computer.startPos = Point(circle_1_x, 0, circle_1_y);
+    }
 
-    skyTexture = LoadTextureRAW("./stars1.bmp");
-    floorTexture = LoadTextureRAW("./rockysoil.bmp");
-    wallTexture = LoadTextureRAW("./walls.bmp");
+    player.lookAt(computer);
+    skyTexture = LoadTextureRAW("./roof.bmp");
+    floorTexture = LoadTextureRAW("./trakpanel.bmp");
+    wallTexture = LoadTextureRAW("./wood.bmp");
+
+    printf("Iniciando jogo: arena -> width: %.2f, height %.2f, length: %.2f\n", arenaDimensions.x, arenaDimensions.y, arenaDimensions.z);
+    printf("Player pos: ");
+    player.pos.print(';');
+    printf("Computer pos: ");
+    computer.pos.print('\n');
+
     glutMainLoop();
     
     return 0;

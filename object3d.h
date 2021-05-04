@@ -54,6 +54,7 @@ class Object3D{
         int debug;
 
         Point pos;
+        Point startPos;
         Point target; // lookat
         GLfloat theta; // rotation y axis
 
@@ -80,6 +81,9 @@ class Object3D{
 
         GLfloat yscale;
 
+        int hitEnabled;
+        int score;
+
         // Atributos abaixo usados apenas para o computador. 
         int punchStatus; // 1: soco com mão direita
                          // 2: soco com mão esquerda.
@@ -88,7 +92,7 @@ class Object3D{
 
         Pose loadPose(std::string inputfile);
         std::vector<Point> extractInterestPoints(std::string inputfile);
-        void load(const char* inputdir, const char* decimatedinputdir, GLuint texture, const char* config);
+        void load(const char* decimatedinputdir, GLuint texture, const char* pointsfile, const char* config);
         void draw(void);
         void nextPose(void);
         void prevPose(void);

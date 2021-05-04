@@ -101,13 +101,48 @@ std::vector<Point> Object3D::extractInterestPoints(std::string inputfile){ // ob
     return points;
 }
 
-void Object3D::load(const char* inputdir, const char* decimatedinputdir, GLuint texture, const char* config){
+void Object3D::load(const char* decimatedinputdir, GLuint texture, const char* pointsfile, const char* config){
     char * line = NULL; // leitura do arquivo de config.
     size_t len = 0;
     ssize_t read;
     int count = 0;
 
-    FILE* fp = fopen(config, "r");
+    FILE* fp = fopen(pointsfile, "r");
+    if (fp == NULL)
+        exit(EXIT_FAILURE);
+
+    while ((read = getline(&line, &len, fp)) != -1) {
+        Point topOfHead_;
+        Point bottomOfHead_;
+        Point betweenEyes_;
+        Point pulse_;
+        Point elbow_;
+        Point pulseRight_;
+        Point rightHand_;
+        Point leftHand_;
+
+        sscanf(line, "%f,%f,%f;%f,%f,%f;%f,%f,%f;%f,%f,%f;%f,%f,%f;%f,%f,%f;%f,%f,%f;%f,%f,%f\n", &topOfHead_.x, &topOfHead_.y, &topOfHead_.z,
+        &bottomOfHead_.x, &bottomOfHead_.y, &bottomOfHead_.z,
+        &betweenEyes_.x, &betweenEyes_.y, &betweenEyes_.z,
+        &pulse_.x, &pulse_.y, &pulse_.z,
+        &elbow_.x, &elbow_.y, &elbow_.z,
+        &pulseRight_.x, &pulseRight_.y, &pulseRight_.z,
+        &rightHand_.x, &rightHand_.y, &rightHand_.z,
+        &leftHand_.x, &leftHand_.y, &leftHand_.z);
+
+        topOfHead.push_back(topOfHead_);
+        bottomOfHead.push_back(bottomOfHead_);
+        betweenEyes.push_back(betweenEyes_);
+        pulse.push_back(pulse_);
+        elbow.push_back(elbow_);
+        pulseRight.push_back(pulseRight_);
+        rightHand.push_back(rightHand_);
+        leftHand.push_back(leftHand_);
+    }
+
+    fclose(fp);
+
+    fp = fopen(config, "r");
     if (fp == NULL)
         exit(EXIT_FAILURE);
 
@@ -130,22 +165,6 @@ void Object3D::load(const char* inputdir, const char* decimatedinputdir, GLuint 
                     count++;
                     break;
                 case 3:
-                    sscanf(line, "%d,%d\n", &topOfHeadVertex, &bottomOfHeadVertex);
-                    count++;
-                    break;
-                case 4:
-                    sscanf(line, "%d", &betweenEyesVertex);
-                    count++;
-                    break;
-                case 5:
-                    sscanf(line, "%d,%d,%d\n", &pulseVertex, &elbowVertex, &pulseRightVertex);
-                    count++;
-                    break;
-                case 6:
-                    sscanf(line, "%d,%d\n", &rightHandVertex, &leftHandVertex);
-                    count++;
-                    break;
-                case 7:
                     sscanf(line, "%f\n", &yscale);
                     count++;
                     break;
@@ -154,11 +173,9 @@ void Object3D::load(const char* inputdir, const char* decimatedinputdir, GLuint 
     }
 
     fclose(fp);
-    if (line){
-        free(line);
-    }
+    free(line);
 
-
+/*
     count = 0; // leitura da animacao original
     char* filenames[100];
     struct dirent *entry;
@@ -175,8 +192,17 @@ void Object3D::load(const char* inputdir, const char* decimatedinputdir, GLuint 
     qsort(filenames, count, sizeof(*filenames), compare);
 
     for(int i = 0; i < count; i++){
-        printf("extracting points %s\n", filenames[i]);
+        //printf("extracting points %s\n", filenames[i]);
         std::vector<Point> points = extractInterestPoints(filenames[i]);
+
+        points.at(0).print(';');
+        points.at(1).print(';');
+        points.at(2).print(';');
+        points.at(3).print(';');
+        points.at(4).print(';');
+        points.at(5).print(';');
+        points.at(6).print(';');
+        points.at(7).print('\n');
 
         topOfHead.push_back(points.at(0));
         bottomOfHead.push_back(points.at(1));
@@ -189,9 +215,10 @@ void Object3D::load(const char* inputdir, const char* decimatedinputdir, GLuint 
         
         free(filenames[i]);
     }
-
+*/
     count = 0; // leitura de arquivos minimizados
     char* decfilenames[100];
+    struct dirent *entry;
     DIR *dir2 = opendir(decimatedinputdir);
 
     while ((entry = readdir(dir2)) != NULL) {
@@ -215,11 +242,12 @@ void Object3D::load(const char* inputdir, const char* decimatedinputdir, GLuint 
     currentPose = walkFirst;
     punchFrames = rightPunchLast - rightPunchFirst;
     debug = 0;
-    pos = Point(0, 0, 0);
     target = Point(0, 0, 1);
     theta = 0;
     punchStatus = 0;
     aggressive = 1;
+    hitEnabled = 1;
+    score = 0;
 }
 
 void Object3D::draw(){
@@ -312,20 +340,6 @@ void Object3D::draw(){
         glTranslatef(leftHand.x, leftHand.y, leftHand.z);
         glutWireSphere(HAND_RADIUS, 20, 10);
         glPopMatrix();
-
-        glPushMatrix();
-        GLfloat mat_ambient_g[] = { 0.0, 1.0, 0.0, 1.0 };
-        glMaterialfv(GL_FRONT, GL_EMISSION, mat_ambient_g);
-        glColor3fv(mat_ambient_g);
-        glTranslatef(pos.x, pos.y, pos.z);
-        //glColor3f(R, G, B);
-        glBegin(GL_TRIANGLE_FAN);
-        glVertex3f(0, 0, 0);
-        for(int i = 20; i >= 0; i--){
-            glVertex3f (BODY_RADIUS * cos(i * 2 * M_PI / 20), 0, BODY_RADIUS * sin(i * 2 * M_PI / 20));
-        }
-        glEnd();
-        glPopMatrix();
     }
 }
 
@@ -387,7 +401,7 @@ Point Object3D::getEyePos(void){
 
 Point Object3D::getPulsePos(void){
     Point p(0, 0, 0);
-    p += pulse.at(currentPose);;
+    p += pulse.at(currentPose);
     p = p.rotatePoint(theta);
     p += pos;
     p = p.scale(Point(1, yscale, 1));

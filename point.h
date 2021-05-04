@@ -27,6 +27,7 @@ class Point{
         int isClose(Point b, GLfloat delta);
         Point rotatePoint(GLfloat theta);
         Point scale(Point s);
+        void print(char terminator);
 
         //Point rotate(GLfloat angle); /* Angle in degrees. */
 };
