@@ -175,47 +175,6 @@ void Object3D::load(const char* decimatedinputdir, GLuint texture, const char* p
     fclose(fp);
     free(line);
 
-/*
-    count = 0; // leitura da animacao original
-    char* filenames[100];
-    struct dirent *entry;
-    DIR *dir = opendir(inputdir);
-    while ((entry = readdir(dir)) != NULL) {
-        if(!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, ".."))
-            continue;
-
-        char* s = concat(inputdir, entry->d_name);
-        filenames[count++] = s;
-    }
-    closedir(dir);
-
-    qsort(filenames, count, sizeof(*filenames), compare);
-
-    for(int i = 0; i < count; i++){
-        //printf("extracting points %s\n", filenames[i]);
-        std::vector<Point> points = extractInterestPoints(filenames[i]);
-
-        points.at(0).print(';');
-        points.at(1).print(';');
-        points.at(2).print(';');
-        points.at(3).print(';');
-        points.at(4).print(';');
-        points.at(5).print(';');
-        points.at(6).print(';');
-        points.at(7).print('\n');
-
-        topOfHead.push_back(points.at(0));
-        bottomOfHead.push_back(points.at(1));
-        betweenEyes.push_back(points.at(2));
-        pulse.push_back(points.at(3));
-        elbow.push_back(points.at(4));
-        pulseRight.push_back(points.at(5));
-        rightHand.push_back(points.at(6));
-        leftHand.push_back(points.at(7));
-        
-        free(filenames[i]);
-    }
-*/
     count = 0; // leitura de arquivos minimizados
     char* decfilenames[100];
     struct dirent *entry;
